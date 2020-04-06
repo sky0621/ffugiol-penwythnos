@@ -24,8 +24,6 @@ type WorkHolder implements Node {
     firstName: String!
     "名"
     lastName: String!
-    "姓名（姓と名から動的に生成）"
-    name: String!
     "ニックネーム"
     nickname: String
 

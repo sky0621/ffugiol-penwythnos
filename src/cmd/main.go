@@ -4,6 +4,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	system "github.com/sky0621/fs-mng-backend"
 )
 
 type exitCode int
@@ -18,6 +20,17 @@ func main() {
 }
 
 func execMain() exitCode {
+	cfg := system.Config{
+		RDBConfig: system.RDBConfig{
+			DBName:   os.Getenv("FIKTIVT_RDB_DBNAME"),
+			User:     os.Getenv("FIKTIVT_RDB_USER"),
+			Password: os.Getenv("FIKTIVT_RDB_PASSWORD"),
+		},
+		WebConfig: system.WebConfig{ListenPort: os.Getenv("FIKTIVT_WEB_LISTENPORT")},
+	}
+
+	app := di(cfg)
+	defer app.Shutdown()
 
 	// OSシグナル受信したらグレースフルシャットダウン
 	go func() {

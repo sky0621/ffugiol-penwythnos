@@ -90,7 +90,6 @@ type ComplexityRoot struct {
 		HoldWorks     func(childComplexity int) int
 		ID            func(childComplexity int) int
 		LastName      func(childComplexity int) int
-		Name          func(childComplexity int) int
 		Nickname      func(childComplexity int) int
 		Organizations func(childComplexity int) int
 	}
@@ -428,13 +427,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.WorkHolder.LastName(childComplexity), true
 
-	case "WorkHolder.name":
-		if e.complexity.WorkHolder.Name == nil {
-			break
-		}
-
-		return e.complexity.WorkHolder.Name(childComplexity), true
-
 	case "WorkHolder.nickname":
 		if e.complexity.WorkHolder.Nickname == nil {
 			break
@@ -670,8 +662,6 @@ type WorkHolder implements Node {
     firstName: String!
     "名"
     lastName: String!
-    "姓名（姓と名から動的に生成）"
-    name: String!
     "ニックネーム"
     nickname: String
 
@@ -2135,40 +2125,6 @@ func (ec *executionContext) _WorkHolder_lastName(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.LastName, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WorkHolder_name(ctx context.Context, field graphql.CollectedField, obj *model.WorkHolder) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WorkHolder",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3916,11 +3872,6 @@ func (ec *executionContext) _WorkHolder(ctx context.Context, sel ast.SelectionSe
 			}
 		case "lastName":
 			out.Values[i] = ec._WorkHolder_lastName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "name":
-			out.Values[i] = ec._WorkHolder_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}

@@ -82,8 +82,6 @@ type WorkHolder struct {
 	FirstName string `json:"firstName"`
 	// 名
 	LastName string `json:"lastName"`
-	// 姓名（姓と名から動的に生成）
-	Name string `json:"name"`
 	// ニックネーム
 	Nickname *string `json:"nickname"`
 	// 所属組織群

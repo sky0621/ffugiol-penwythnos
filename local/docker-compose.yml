@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  db:
+    restart: always
+    image: postgres:12-alpine
+    container_name: db-container
+    ports:
+      - "65432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=localpass
+      - PGPASSWORD=localpass
+      - POSTGRES_DB=localdb
+      - DATABASE_HOST=localhost
+    volumes:
+      - ./docker/db/init:/docker-entrypoint-initdb.d
