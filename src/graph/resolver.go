@@ -1,4 +1,4 @@
-package controller
+package graph
 
 // This file will not be regenerated automatically.
 //
