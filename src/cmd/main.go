@@ -20,14 +20,7 @@ func main() {
 }
 
 func execMain() exitCode {
-	cfg := system.Config{
-		RDBConfig: system.RDBConfig{
-			DBName:   os.Getenv("FIKTIVT_RDB_DBNAME"),
-			User:     os.Getenv("FIKTIVT_RDB_USER"),
-			Password: os.Getenv("FIKTIVT_RDB_PASSWORD"),
-		},
-		WebConfig: system.WebConfig{ListenPort: os.Getenv("FIKTIVT_WEB_LISTENPORT")},
-	}
+	cfg := system.LoadConfig()
 
 	app := di(cfg)
 	defer app.Shutdown()

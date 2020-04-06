@@ -11,10 +11,11 @@ type Config struct {
 	DBName     string `split_words:"true" default:"localdb"`
 	DBUser     string `split_words:"true" default:"postgres"`
 	DBPassword string `split_words:"true" default:"localpass"`
+	ListenPort string `split_words:"true" default:":5432"`
 }
 
-func loadConfig() *Config {
+func LoadConfig() Config {
 	var cfg Config
 	envconfig.Process("fs", &cfg)
-	return &cfg
+	return cfg
 }

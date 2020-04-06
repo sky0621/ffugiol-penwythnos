@@ -3,11 +3,16 @@ package usecase
 import (
 	"context"
 
+	system "github.com/sky0621/fs-mng-backend"
+
 	"github.com/sky0621/fs-mng-backend/domain"
 )
 
-func NewItemHolder(itemHolderDomain domain.ItemHolder) ItemHolder {
-	return &itemHolder{itemHolderDomain: itemHolderDomain}
+func NewItemHolder(itemHolderDomain domain.ItemHolder, io system.IO) ItemHolder {
+	return &itemHolder{
+		itemHolderDomain: itemHolderDomain,
+		io:               io,
+	}
 }
 
 type ItemHolder interface {
@@ -18,6 +23,7 @@ type ItemHolder interface {
 
 type itemHolder struct {
 	itemHolderDomain domain.ItemHolder
+	io               system.IO
 }
 
 func (i *itemHolder) GetItemHolder(ctx context.Context, id string) (*domain.QueryItemHolderModel, error) {
