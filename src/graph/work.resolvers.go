@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sky0621/fs-mng-backend/src/models"
+
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 )
 
@@ -27,5 +29,16 @@ func (r *queryResolver) Work(ctx context.Context, id string) (*model.Work, error
 }
 
 func (r *queryResolver) Works(ctx context.Context, condition *model.WorkCondition) ([]*model.Work, error) {
-	panic(fmt.Errorf("not implemented"))
+	works, err := models.Works().All(ctx, r.DB)
+	if err != nil {
+		return nil, err
+	}
+	var results []*model.Work
+	for _, work := range works {
+		results = append(results, &model.Work{
+			ID:   work.ID,
+			Name: work.Name,
+		})
+	}
+	return results, nil
 }
