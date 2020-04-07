@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sky0621/fs-mng-backend/src/models"
-
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
+	"github.com/sky0621/fs-mng-backend/src/models"
 )
 
 func (r *mutationResolver) CreateWork(ctx context.Context, input model.WorkInput) (string, error) {
@@ -35,9 +34,14 @@ func (r *queryResolver) Works(ctx context.Context, condition *model.WorkConditio
 	}
 	var results []*model.Work
 	for _, work := range works {
+		var price int64
+		if work.Price.Valid {
+			price = work.Price.Int64
+		}
 		results = append(results, &model.Work{
-			ID:   work.ID,
-			Name: work.Name,
+			ID:    work.ID,
+			Name:  work.Name,
+			Price: int(price),
 		})
 	}
 	return results, nil
