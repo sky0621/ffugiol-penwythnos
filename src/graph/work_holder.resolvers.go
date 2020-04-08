@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sky0621/fs-mng-backend/src/graph/generated"
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 )
 
@@ -29,3 +30,16 @@ func (r *queryResolver) WorkHolder(ctx context.Context, id string) (*model.WorkH
 func (r *queryResolver) WorkHolders(ctx context.Context, condition *model.WorkHolderCondition) ([]*model.WorkHolder, error) {
 	panic(fmt.Errorf("not implemented"))
 }
+
+func (r *workHolderResolver) Organizations(ctx context.Context, obj *model.WorkHolder) ([]*model.Organization, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *workHolderResolver) HoldWorks(ctx context.Context, obj *model.WorkHolder) ([]*model.Work, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+// WorkHolder returns generated.WorkHolderResolver implementation.
+func (r *Resolver) WorkHolder() generated.WorkHolderResolver { return &workHolderResolver{r} }
+
+type workHolderResolver struct{ *Resolver }

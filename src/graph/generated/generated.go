@@ -37,7 +37,10 @@ type Config struct {
 
 type ResolverRoot interface {
 	Mutation() MutationResolver
+	Organization() OrganizationResolver
 	Query() QueryResolver
+	Work() WorkResolver
+	WorkHolder() WorkHolderResolver
 }
 
 type DirectiveRoot struct {
@@ -107,6 +110,10 @@ type MutationResolver interface {
 	UpdateWorkHolder(ctx context.Context, input model.WorkHolderInput) (string, error)
 	DeleteWorkHolder(ctx context.Context, id string) (string, error)
 }
+type OrganizationResolver interface {
+	UpperOrganization(ctx context.Context, obj *model.Organization) (*model.Organization, error)
+	LowerOrganizations(ctx context.Context, obj *model.Organization) ([]*model.Organization, error)
+}
 type QueryResolver interface {
 	Node(ctx context.Context, id string) (model.Node, error)
 	Organization(ctx context.Context, id string) (*model.Organization, error)
@@ -115,6 +122,13 @@ type QueryResolver interface {
 	Works(ctx context.Context, condition *model.WorkCondition) ([]*model.Work, error)
 	WorkHolder(ctx context.Context, id string) (*model.WorkHolder, error)
 	WorkHolders(ctx context.Context, condition *model.WorkHolderCondition) ([]*model.WorkHolder, error)
+}
+type WorkResolver interface {
+	WorkHolders(ctx context.Context, obj *model.Work) ([]*model.WorkHolder, error)
+}
+type WorkHolderResolver interface {
+	Organizations(ctx context.Context, obj *model.WorkHolder) ([]*model.Organization, error)
+	HoldWorks(ctx context.Context, obj *model.WorkHolder) ([]*model.Work, error)
 }
 
 type executableSchema struct {
@@ -1511,13 +1525,13 @@ func (ec *executionContext) _Organization_upperOrganization(ctx context.Context,
 		Object:   "Organization",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.UpperOrganization, nil
+		return ec.resolvers.Organization().UpperOrganization(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1542,13 +1556,13 @@ func (ec *executionContext) _Organization_lowerOrganizations(ctx context.Context
 		Object:   "Organization",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.LowerOrganizations, nil
+		return ec.resolvers.Organization().LowerOrganizations(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2019,13 +2033,13 @@ func (ec *executionContext) _Work_workHolders(ctx context.Context, field graphql
 		Object:   "Work",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.WorkHolders, nil
+		return ec.resolvers.Work().WorkHolders(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2183,13 +2197,13 @@ func (ec *executionContext) _WorkHolder_organizations(ctx context.Context, field
 		Object:   "WorkHolder",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Organizations, nil
+		return ec.resolvers.WorkHolder().Organizations(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2214,13 +2228,13 @@ func (ec *executionContext) _WorkHolder_holdWorks(ctx context.Context, field gra
 		Object:   "WorkHolder",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.HoldWorks, nil
+		return ec.resolvers.WorkHolder().HoldWorks(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3672,17 +3686,35 @@ func (ec *executionContext) _Organization(ctx context.Context, sel ast.Selection
 		case "id":
 			out.Values[i] = ec._Organization_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "Name":
 			out.Values[i] = ec._Organization_Name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "upperOrganization":
-			out.Values[i] = ec._Organization_upperOrganization(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Organization_upperOrganization(ctx, field, obj)
+				return res
+			})
 		case "lowerOrganizations":
-			out.Values[i] = ec._Organization_lowerOrganizations(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Organization_lowerOrganizations(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3824,20 +3856,29 @@ func (ec *executionContext) _Work(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._Work_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Work_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "price":
 			out.Values[i] = ec._Work_price(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "workHolders":
-			out.Values[i] = ec._Work_workHolders(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Work_workHolders(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3863,24 +3904,42 @@ func (ec *executionContext) _WorkHolder(ctx context.Context, sel ast.SelectionSe
 		case "id":
 			out.Values[i] = ec._WorkHolder_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "firstName":
 			out.Values[i] = ec._WorkHolder_firstName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "lastName":
 			out.Values[i] = ec._WorkHolder_lastName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "nickname":
 			out.Values[i] = ec._WorkHolder_nickname(ctx, field, obj)
 		case "organizations":
-			out.Values[i] = ec._WorkHolder_organizations(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._WorkHolder_organizations(ctx, field, obj)
+				return res
+			})
 		case "holdWorks":
-			out.Values[i] = ec._WorkHolder_holdWorks(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._WorkHolder_holdWorks(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

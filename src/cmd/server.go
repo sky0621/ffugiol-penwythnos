@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	sys "github.com/sky0621/fs-mng-backend/src"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/lib/pq"
@@ -14,7 +16,7 @@ import (
 )
 
 func main() {
-	cfg := InitConfig()
+	cfg := sys.InitConfig()
 
 	db, err := sql.Open("postgres", fmt.Sprintf("dbname=%s user=%s password=%s sslmode=%s port=%s", cfg.DBName, cfg.DBUser, cfg.DBPassword, cfg.DBSSLMode, cfg.DBPort))
 	if err != nil {

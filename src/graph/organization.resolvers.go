@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sky0621/fs-mng-backend/src/graph/generated"
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 )
 
@@ -22,6 +23,14 @@ func (r *mutationResolver) DeleteOrganization(ctx context.Context, id string) (s
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *organizationResolver) UpperOrganization(ctx context.Context, obj *model.Organization) (*model.Organization, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *organizationResolver) LowerOrganizations(ctx context.Context, obj *model.Organization) ([]*model.Organization, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Organization(ctx context.Context, id string) (*model.Organization, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -29,3 +38,8 @@ func (r *queryResolver) Organization(ctx context.Context, id string) (*model.Org
 func (r *queryResolver) Organizations(ctx context.Context, condition *model.OrganizationCondition) ([]*model.Organization, error) {
 	panic(fmt.Errorf("not implemented"))
 }
+
+// Organization returns generated.OrganizationResolver implementation.
+func (r *Resolver) Organization() generated.OrganizationResolver { return &organizationResolver{r} }
+
+type organizationResolver struct{ *Resolver }
