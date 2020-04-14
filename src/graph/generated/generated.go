@@ -37,98 +37,41 @@ type Config struct {
 
 type ResolverRoot interface {
 	Mutation() MutationResolver
-	Organization() OrganizationResolver
 	Query() QueryResolver
-	Work() WorkResolver
-	WorkHolder() WorkHolderResolver
 }
 
 type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Movie struct {
+		ID       func(childComplexity int) int
+		MovieURL func(childComplexity int) int
+		Name     func(childComplexity int) int
+	}
+
 	Mutation struct {
-		CreateOrganization func(childComplexity int, input model.OrganizationInput) int
-		CreateWork         func(childComplexity int, input model.WorkInput) int
-		CreateWorkHolder   func(childComplexity int, input model.WorkHolderInput) int
-		DeleteOrganization func(childComplexity int, id string) int
-		DeleteWork         func(childComplexity int, id string) int
-		DeleteWorkHolder   func(childComplexity int, id string) int
-		Noop               func(childComplexity int, input *model.NoopInput) int
-		UpdateOrganization func(childComplexity int, input model.OrganizationInput) int
-		UpdateWork         func(childComplexity int, input model.WorkInput) int
-		UpdateWorkHolder   func(childComplexity int, input model.WorkHolderInput) int
+		CreateMovie func(childComplexity int, input model.MovieInput) int
+		Noop        func(childComplexity int, input *model.NoopInput) int
 	}
 
 	NoopPayload struct {
 		ClientMutationID func(childComplexity int) int
 	}
 
-	Organization struct {
-		ID                 func(childComplexity int) int
-		LowerOrganizations func(childComplexity int) int
-		Name               func(childComplexity int) int
-		UpperOrganization  func(childComplexity int) int
-	}
-
 	Query struct {
-		Node          func(childComplexity int, id string) int
-		Organization  func(childComplexity int, id string) int
-		Organizations func(childComplexity int, condition *model.OrganizationCondition) int
-		Work          func(childComplexity int, id string) int
-		WorkHolder    func(childComplexity int, id string) int
-		WorkHolders   func(childComplexity int, condition *model.WorkHolderCondition) int
-		Works         func(childComplexity int, condition *model.WorkCondition) int
-	}
-
-	Work struct {
-		ID          func(childComplexity int) int
-		Name        func(childComplexity int) int
-		Price       func(childComplexity int) int
-		WorkHolders func(childComplexity int) int
-	}
-
-	WorkHolder struct {
-		FirstName     func(childComplexity int) int
-		HoldWorks     func(childComplexity int) int
-		ID            func(childComplexity int) int
-		LastName      func(childComplexity int) int
-		Nickname      func(childComplexity int) int
-		Organizations func(childComplexity int) int
+		Movies func(childComplexity int) int
+		Node   func(childComplexity int, id string) int
 	}
 }
 
 type MutationResolver interface {
 	Noop(ctx context.Context, input *model.NoopInput) (*model.NoopPayload, error)
-	CreateOrganization(ctx context.Context, input model.OrganizationInput) (string, error)
-	UpdateOrganization(ctx context.Context, input model.OrganizationInput) (string, error)
-	DeleteOrganization(ctx context.Context, id string) (string, error)
-	CreateWork(ctx context.Context, input model.WorkInput) (string, error)
-	UpdateWork(ctx context.Context, input model.WorkInput) (string, error)
-	DeleteWork(ctx context.Context, id string) (string, error)
-	CreateWorkHolder(ctx context.Context, input model.WorkHolderInput) (string, error)
-	UpdateWorkHolder(ctx context.Context, input model.WorkHolderInput) (string, error)
-	DeleteWorkHolder(ctx context.Context, id string) (string, error)
-}
-type OrganizationResolver interface {
-	UpperOrganization(ctx context.Context, obj *model.Organization) (*model.Organization, error)
-	LowerOrganizations(ctx context.Context, obj *model.Organization) ([]*model.Organization, error)
+	CreateMovie(ctx context.Context, input model.MovieInput) (string, error)
 }
 type QueryResolver interface {
 	Node(ctx context.Context, id string) (model.Node, error)
-	Organization(ctx context.Context, id string) (*model.Organization, error)
-	Organizations(ctx context.Context, condition *model.OrganizationCondition) ([]*model.Organization, error)
-	Work(ctx context.Context, id string) (*model.Work, error)
-	Works(ctx context.Context, condition *model.WorkCondition) ([]*model.Work, error)
-	WorkHolder(ctx context.Context, id string) (*model.WorkHolder, error)
-	WorkHolders(ctx context.Context, condition *model.WorkHolderCondition) ([]*model.WorkHolder, error)
-}
-type WorkResolver interface {
-	WorkHolders(ctx context.Context, obj *model.Work) ([]*model.WorkHolder, error)
-}
-type WorkHolderResolver interface {
-	Organizations(ctx context.Context, obj *model.WorkHolder) ([]*model.Organization, error)
-	HoldWorks(ctx context.Context, obj *model.WorkHolder) ([]*model.Work, error)
+	Movies(ctx context.Context) ([]*model.Movie, error)
 }
 
 type executableSchema struct {
@@ -146,77 +89,38 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
-	case "Mutation.createOrganization":
-		if e.complexity.Mutation.CreateOrganization == nil {
+	case "Movie.id":
+		if e.complexity.Movie.ID == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_createOrganization_args(context.TODO(), rawArgs)
+		return e.complexity.Movie.ID(childComplexity), true
+
+	case "Movie.movieUrl":
+		if e.complexity.Movie.MovieURL == nil {
+			break
+		}
+
+		return e.complexity.Movie.MovieURL(childComplexity), true
+
+	case "Movie.name":
+		if e.complexity.Movie.Name == nil {
+			break
+		}
+
+		return e.complexity.Movie.Name(childComplexity), true
+
+	case "Mutation.createMovie":
+		if e.complexity.Mutation.CreateMovie == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createMovie_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateOrganization(childComplexity, args["input"].(model.OrganizationInput)), true
-
-	case "Mutation.createWork":
-		if e.complexity.Mutation.CreateWork == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createWork_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateWork(childComplexity, args["input"].(model.WorkInput)), true
-
-	case "Mutation.createWorkHolder":
-		if e.complexity.Mutation.CreateWorkHolder == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createWorkHolder_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateWorkHolder(childComplexity, args["input"].(model.WorkHolderInput)), true
-
-	case "Mutation.deleteOrganization":
-		if e.complexity.Mutation.DeleteOrganization == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteOrganization_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteOrganization(childComplexity, args["id"].(string)), true
-
-	case "Mutation.deleteWork":
-		if e.complexity.Mutation.DeleteWork == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteWork_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteWork(childComplexity, args["id"].(string)), true
-
-	case "Mutation.deleteWorkHolder":
-		if e.complexity.Mutation.DeleteWorkHolder == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteWorkHolder_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteWorkHolder(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.CreateMovie(childComplexity, args["input"].(model.MovieInput)), true
 
 	case "Mutation.noop":
 		if e.complexity.Mutation.Noop == nil {
@@ -230,42 +134,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.Noop(childComplexity, args["input"].(*model.NoopInput)), true
 
-	case "Mutation.updateOrganization":
-		if e.complexity.Mutation.UpdateOrganization == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_updateOrganization_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateOrganization(childComplexity, args["input"].(model.OrganizationInput)), true
-
-	case "Mutation.updateWork":
-		if e.complexity.Mutation.UpdateWork == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_updateWork_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateWork(childComplexity, args["input"].(model.WorkInput)), true
-
-	case "Mutation.updateWorkHolder":
-		if e.complexity.Mutation.UpdateWorkHolder == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_updateWorkHolder_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateWorkHolder(childComplexity, args["input"].(model.WorkHolderInput)), true
-
 	case "NoopPayload.clientMutationId":
 		if e.complexity.NoopPayload.ClientMutationID == nil {
 			break
@@ -273,33 +141,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.NoopPayload.ClientMutationID(childComplexity), true
 
-	case "Organization.id":
-		if e.complexity.Organization.ID == nil {
+	case "Query.movies":
+		if e.complexity.Query.Movies == nil {
 			break
 		}
 
-		return e.complexity.Organization.ID(childComplexity), true
-
-	case "Organization.lowerOrganizations":
-		if e.complexity.Organization.LowerOrganizations == nil {
-			break
-		}
-
-		return e.complexity.Organization.LowerOrganizations(childComplexity), true
-
-	case "Organization.Name":
-		if e.complexity.Organization.Name == nil {
-			break
-		}
-
-		return e.complexity.Organization.Name(childComplexity), true
-
-	case "Organization.upperOrganization":
-		if e.complexity.Organization.UpperOrganization == nil {
-			break
-		}
-
-		return e.complexity.Organization.UpperOrganization(childComplexity), true
+		return e.complexity.Query.Movies(childComplexity), true
 
 	case "Query.node":
 		if e.complexity.Query.Node == nil {
@@ -312,148 +159,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Node(childComplexity, args["id"].(string)), true
-
-	case "Query.organization":
-		if e.complexity.Query.Organization == nil {
-			break
-		}
-
-		args, err := ec.field_Query_organization_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Organization(childComplexity, args["id"].(string)), true
-
-	case "Query.organizations":
-		if e.complexity.Query.Organizations == nil {
-			break
-		}
-
-		args, err := ec.field_Query_organizations_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Organizations(childComplexity, args["condition"].(*model.OrganizationCondition)), true
-
-	case "Query.work":
-		if e.complexity.Query.Work == nil {
-			break
-		}
-
-		args, err := ec.field_Query_work_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Work(childComplexity, args["id"].(string)), true
-
-	case "Query.workHolder":
-		if e.complexity.Query.WorkHolder == nil {
-			break
-		}
-
-		args, err := ec.field_Query_workHolder_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.WorkHolder(childComplexity, args["id"].(string)), true
-
-	case "Query.workHolders":
-		if e.complexity.Query.WorkHolders == nil {
-			break
-		}
-
-		args, err := ec.field_Query_workHolders_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.WorkHolders(childComplexity, args["condition"].(*model.WorkHolderCondition)), true
-
-	case "Query.works":
-		if e.complexity.Query.Works == nil {
-			break
-		}
-
-		args, err := ec.field_Query_works_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.Works(childComplexity, args["condition"].(*model.WorkCondition)), true
-
-	case "Work.id":
-		if e.complexity.Work.ID == nil {
-			break
-		}
-
-		return e.complexity.Work.ID(childComplexity), true
-
-	case "Work.name":
-		if e.complexity.Work.Name == nil {
-			break
-		}
-
-		return e.complexity.Work.Name(childComplexity), true
-
-	case "Work.price":
-		if e.complexity.Work.Price == nil {
-			break
-		}
-
-		return e.complexity.Work.Price(childComplexity), true
-
-	case "Work.workHolders":
-		if e.complexity.Work.WorkHolders == nil {
-			break
-		}
-
-		return e.complexity.Work.WorkHolders(childComplexity), true
-
-	case "WorkHolder.firstName":
-		if e.complexity.WorkHolder.FirstName == nil {
-			break
-		}
-
-		return e.complexity.WorkHolder.FirstName(childComplexity), true
-
-	case "WorkHolder.holdWorks":
-		if e.complexity.WorkHolder.HoldWorks == nil {
-			break
-		}
-
-		return e.complexity.WorkHolder.HoldWorks(childComplexity), true
-
-	case "WorkHolder.id":
-		if e.complexity.WorkHolder.ID == nil {
-			break
-		}
-
-		return e.complexity.WorkHolder.ID(childComplexity), true
-
-	case "WorkHolder.lastName":
-		if e.complexity.WorkHolder.LastName == nil {
-			break
-		}
-
-		return e.complexity.WorkHolder.LastName(childComplexity), true
-
-	case "WorkHolder.nickname":
-		if e.complexity.WorkHolder.Nickname == nil {
-			break
-		}
-
-		return e.complexity.WorkHolder.Nickname(childComplexity), true
-
-	case "WorkHolder.organizations":
-		if e.complexity.WorkHolder.Organizations == nil {
-			break
-		}
-
-		return e.complexity.WorkHolder.Organizations(childComplexity), true
 
 	}
 	return 0, false
@@ -519,54 +224,30 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	&ast.Source{Name: "../schema/organization.graphqls", Input: `# 組織
+	&ast.Source{Name: "../schema/movie.graphqls", Input: `extend type Mutation {
+    "動画をアップロード"
+    createMovie(input: MovieInput!): ID!
+}
+
+input MovieInput {
+    name: String!
+    movieFile: Upload!
+}
+
+"動画アップロード用"
+scalar Upload
 
 extend type Query {
-    "UUIDで特定される１組織の詳細情報を取得"
-    organization(id: ID!): Organization
-    "条件に合致する全ての組織の詳細情報を取得"
-    organizations(condition: OrganizationCondition): [Organization!]!
+    movies: [Movie!]!
 }
 
-extend type Mutation {
-    "１組織を新規登録"
-    createOrganization(input: OrganizationInput!): ID!
-    "１組織を更新"
-    updateOrganization(input: OrganizationInput!): ID!
-    "１組織を削除"
-    deleteOrganization(id: ID!): ID!
-}
-
-"組織"
-type Organization implements Node {
+type Movie implements Node {
     "UUID"
     id: ID!
     "名称"
-    Name: String!
-    "上位組織"
-    upperOrganization: Organization
-    "下位組織群"
-    lowerOrganizations: [Organization]
-}
-
-"組織検索条件"
-input OrganizationCondition {
-    "UUID"
-    id: ID
-    "名称"
-    Name: String!
-}
-
-"組織入力情報"
-input OrganizationInput {
-    "UUID"
-    id: ID
-    "名称"
-    Name: String!
-    "上位組織ID"
-    upperOrganizationId: ID
-    "下位組織ID群"
-    lowerOrganizationsIds: [ID]
+    name: String!
+    "動画URL"
+    movieUrl: String!
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "../schema/schema.graphqls", Input: `# Global Object Identification ... 全データを共通のIDでユニーク化
@@ -595,124 +276,6 @@ type NoopPayload {
     clientMutationId: String
 }
 `, BuiltIn: false},
-	&ast.Source{Name: "../schema/work.graphqls", Input: `# 作品
-
-extend type Query {
-    "UUIDで特定される１作品の詳細情報を取得"
-    work(id: ID!): Work
-    "条件に合致する全ての作品の詳細情報を取得"
-    works(condition: WorkCondition): [Work!]!
-}
-
-extend type Mutation {
-    "１作品を新規登録"
-    createWork(input: WorkInput!): ID!
-    "１作品を更新"
-    updateWork(input: WorkInput!): ID!
-    "１作品を削除"
-    deleteWork(id: ID!): ID!
-}
-
-"作品"
-type Work implements Node{
-    "UUID"
-    id: ID!
-    "作品名"
-    name: String!
-    "価格（無料は0円）"
-    price: Int!
-
-    "作成者群（不明な場合もある）"
-    workHolders: [WorkHolder]
-}
-
-"作品検索条件"
-input WorkCondition {
-    "UUID"
-    id: ID
-    "作品名"
-    name: String
-    "価格（無料は0円）"
-    price: Int
-    "作成者ID"
-    workHolderId: ID
-}
-
-"作品入力情報"
-input WorkInput {
-    "UUID"
-    id: ID
-    "作品名"
-    name: String!
-    "価格（無料は0円）"
-    price: Int!
-    "作成者ID群"
-    itemHolderIds: [ID]
-}
-`, BuiltIn: false},
-	&ast.Source{Name: "../schema/work_holder.graphqls", Input: `# 作品の作成者
-
-extend type Query {
-    "UUIDで特定される作成者１人の詳細情報を取得"
-    workHolder(id: ID!): WorkHolder
-    "条件に合致する全ての作成者の詳細情報を取得"
-    workHolders(condition: WorkHolderCondition): [WorkHolder!]!
-}
-
-extend type Mutation {
-    "１作成者を新規登録"
-    createWorkHolder(input: WorkHolderInput!): ID!
-    "１作成者を更新"
-    updateWorkHolder(input: WorkHolderInput!): ID!
-    "１作成者を削除"
-    deleteWorkHolder(id: ID!): ID!
-}
-
-"作成者"
-type WorkHolder implements Node {
-    "UUID"
-    id: ID!
-    "姓"
-    firstName: String!
-    "名"
-    lastName: String!
-    "ニックネーム"
-    nickname: String
-
-    "所属組織群"
-    organizations: [Organization]
-    "所持作品群"
-    holdWorks: [Work]
-}
-
-"作成者検索条件"
-input WorkHolderCondition {
-    "UUID"
-    id: ID
-    "姓"
-    firstName: String
-    "名"
-    lastName: String
-    "ニックネーム"
-    nickname: String
-    "所属組織ID"
-    organizationId: ID
-}
-
-"作成者入力情報"
-input WorkHolderInput {
-    "UUID"
-    id: ID
-    "姓"
-    firstName: String!
-    "名"
-    lastName: String!
-    "ニックネーム"
-    nickname: String
-    "所属組織ID群（※必ずしも所属する必要はない）"
-    organizationIds: [ID]
-}
-`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -720,87 +283,17 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
-func (ec *executionContext) field_Mutation_createOrganization_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_createMovie_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.OrganizationInput
+	var arg0 model.MovieInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNOrganizationInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationInput(ctx, tmp)
+		arg0, err = ec.unmarshalNMovieInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovieInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
 	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_createWorkHolder_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.WorkHolderInput
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNWorkHolderInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_createWork_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.WorkInput
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNWorkInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteOrganization_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteWorkHolder_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteWork_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
 	return args, nil
 }
 
@@ -810,48 +303,6 @@ func (ec *executionContext) field_Mutation_noop_args(ctx context.Context, rawArg
 	var arg0 *model.NoopInput
 	if tmp, ok := rawArgs["input"]; ok {
 		arg0, err = ec.unmarshalONoopInput2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐNoopInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_updateOrganization_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.OrganizationInput
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNOrganizationInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_updateWorkHolder_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.WorkHolderInput
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNWorkHolderInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_updateWork_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 model.WorkInput
-	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNWorkInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -885,90 +336,6 @@ func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_organization_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_organizations_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *model.OrganizationCondition
-	if tmp, ok := rawArgs["condition"]; ok {
-		arg0, err = ec.unmarshalOOrganizationCondition2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationCondition(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["condition"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_workHolder_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_workHolders_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *model.WorkHolderCondition
-	if tmp, ok := rawArgs["condition"]; ok {
-		arg0, err = ec.unmarshalOWorkHolderCondition2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderCondition(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["condition"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_work_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 string
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_works_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *model.WorkCondition
-	if tmp, ok := rawArgs["condition"]; ok {
-		arg0, err = ec.unmarshalOWorkCondition2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkCondition(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["condition"] = arg0
 	return args, nil
 }
 
@@ -1008,6 +375,108 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _Movie_id(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Movie",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Movie_name(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Movie",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Movie_movieUrl(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Movie",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MovieURL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_noop(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1046,7 +515,7 @@ func (ec *executionContext) _Mutation_noop(ctx context.Context, field graphql.Co
 	return ec.marshalONoopPayload2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐNoopPayload(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createOrganization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createMovie(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1062,7 +531,7 @@ func (ec *executionContext) _Mutation_createOrganization(ctx context.Context, fi
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createOrganization_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_createMovie_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -1070,335 +539,7 @@ func (ec *executionContext) _Mutation_createOrganization(ctx context.Context, fi
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateOrganization(rctx, args["input"].(model.OrganizationInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_updateOrganization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateOrganization_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateOrganization(rctx, args["input"].(model.OrganizationInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_deleteOrganization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deleteOrganization_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteOrganization(rctx, args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_createWork(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createWork_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateWork(rctx, args["input"].(model.WorkInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_updateWork(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateWork_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateWork(rctx, args["input"].(model.WorkInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_deleteWork(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deleteWork_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteWork(rctx, args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_createWorkHolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createWorkHolder_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateWorkHolder(rctx, args["input"].(model.WorkHolderInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_updateWorkHolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateWorkHolder_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateWorkHolder(rctx, args["input"].(model.WorkHolderInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_deleteWorkHolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Mutation",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_deleteWorkHolder_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteWorkHolder(rctx, args["id"].(string))
+		return ec.resolvers.Mutation().CreateMovie(rctx, args["input"].(model.MovieInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1446,136 +587,6 @@ func (ec *executionContext) _NoopPayload_clientMutationId(ctx context.Context, f
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Organization_id(ctx context.Context, field graphql.CollectedField, obj *model.Organization) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Organization",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Organization_Name(ctx context.Context, field graphql.CollectedField, obj *model.Organization) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Organization",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Organization_upperOrganization(ctx context.Context, field graphql.CollectedField, obj *model.Organization) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Organization",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Organization().UpperOrganization(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Organization)
-	fc.Result = res
-	return ec.marshalOOrganization2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Organization_lowerOrganizations(ctx context.Context, field graphql.CollectedField, obj *model.Organization) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Organization",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Organization().LowerOrganizations(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Organization)
-	fc.Result = res
-	return ec.marshalOOrganization2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Query_node(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1614,7 +625,7 @@ func (ec *executionContext) _Query_node(ctx context.Context, field graphql.Colle
 	return ec.marshalONode2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐNode(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_organization(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_movies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1629,54 +640,9 @@ func (ec *executionContext) _Query_organization(ctx context.Context, field graph
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_organization_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Organization(rctx, args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Organization)
-	fc.Result = res
-	return ec.marshalOOrganization2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_organizations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_organizations_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Organizations(rctx, args["condition"].(*model.OrganizationCondition))
+		return ec.resolvers.Query().Movies(rctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1688,167 +654,9 @@ func (ec *executionContext) _Query_organizations(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Organization)
+	res := resTmp.([]*model.Movie)
 	fc.Result = res
-	return ec.marshalNOrganization2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_work(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_work_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Work(rctx, args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Work)
-	fc.Result = res
-	return ec.marshalOWork2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_works(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_works_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Works(rctx, args["condition"].(*model.WorkCondition))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Work)
-	fc.Result = res
-	return ec.marshalNWork2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_workHolder(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_workHolder_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().WorkHolder(rctx, args["id"].(string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.WorkHolder)
-	fc.Result = res
-	return ec.marshalOWorkHolder2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Query_workHolders(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Query",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_workHolders_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().WorkHolders(rctx, args["condition"].(*model.WorkHolderCondition))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.WorkHolder)
-	fc.Result = res
-	return ec.marshalNWorkHolder2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderᚄ(ctx, field.Selections, res)
+	return ec.marshalNMovie2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovieᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1918,334 +726,6 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Work_id(ctx context.Context, field graphql.CollectedField, obj *model.Work) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Work",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Work_name(ctx context.Context, field graphql.CollectedField, obj *model.Work) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Work",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Work_price(ctx context.Context, field graphql.CollectedField, obj *model.Work) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Work",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Price, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Work_workHolders(ctx context.Context, field graphql.CollectedField, obj *model.Work) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Work",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Work().WorkHolders(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.WorkHolder)
-	fc.Result = res
-	return ec.marshalOWorkHolder2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WorkHolder_id(ctx context.Context, field graphql.CollectedField, obj *model.WorkHolder) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WorkHolder",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WorkHolder_firstName(ctx context.Context, field graphql.CollectedField, obj *model.WorkHolder) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WorkHolder",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.FirstName, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WorkHolder_lastName(ctx context.Context, field graphql.CollectedField, obj *model.WorkHolder) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WorkHolder",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.LastName, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WorkHolder_nickname(ctx context.Context, field graphql.CollectedField, obj *model.WorkHolder) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WorkHolder",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Nickname, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WorkHolder_organizations(ctx context.Context, field graphql.CollectedField, obj *model.WorkHolder) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WorkHolder",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.WorkHolder().Organizations(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Organization)
-	fc.Result = res
-	return ec.marshalOOrganization2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _WorkHolder_holdWorks(ctx context.Context, field graphql.CollectedField, obj *model.WorkHolder) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "WorkHolder",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.WorkHolder().HoldWorks(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Work)
-	fc.Result = res
-	return ec.marshalOWork2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -3303,6 +1783,30 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputMovieInput(ctx context.Context, obj interface{}) (model.MovieInput, error) {
+	var it model.MovieInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "movieFile":
+			var err error
+			it.MovieFile, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNoopInput(ctx context.Context, obj interface{}) (model.NoopInput, error) {
 	var it model.NoopInput
 	var asMap = obj.(map[string]interface{})
@@ -3321,222 +1825,6 @@ func (ec *executionContext) unmarshalInputNoopInput(ctx context.Context, obj int
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputOrganizationCondition(ctx context.Context, obj interface{}) (model.OrganizationCondition, error) {
-	var it model.OrganizationCondition
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "Name":
-			var err error
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputOrganizationInput(ctx context.Context, obj interface{}) (model.OrganizationInput, error) {
-	var it model.OrganizationInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "Name":
-			var err error
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "upperOrganizationId":
-			var err error
-			it.UpperOrganizationID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "lowerOrganizationsIds":
-			var err error
-			it.LowerOrganizationsIds, err = ec.unmarshalOID2ᚕᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputWorkCondition(ctx context.Context, obj interface{}) (model.WorkCondition, error) {
-	var it model.WorkCondition
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "price":
-			var err error
-			it.Price, err = ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "workHolderId":
-			var err error
-			it.WorkHolderID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputWorkHolderCondition(ctx context.Context, obj interface{}) (model.WorkHolderCondition, error) {
-	var it model.WorkHolderCondition
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "firstName":
-			var err error
-			it.FirstName, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "lastName":
-			var err error
-			it.LastName, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "nickname":
-			var err error
-			it.Nickname, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "organizationId":
-			var err error
-			it.OrganizationID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputWorkHolderInput(ctx context.Context, obj interface{}) (model.WorkHolderInput, error) {
-	var it model.WorkHolderInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "firstName":
-			var err error
-			it.FirstName, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "lastName":
-			var err error
-			it.LastName, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "nickname":
-			var err error
-			it.Nickname, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "organizationIds":
-			var err error
-			it.OrganizationIds, err = ec.unmarshalOID2ᚕᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputWorkInput(ctx context.Context, obj interface{}) (model.WorkInput, error) {
-	var it model.WorkInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "name":
-			var err error
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "price":
-			var err error
-			it.Price, err = ec.unmarshalNInt2int(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "itemHolderIds":
-			var err error
-			it.ItemHolderIds, err = ec.unmarshalOID2ᚕᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -3545,27 +1833,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case model.Organization:
-		return ec._Organization(ctx, sel, &obj)
-	case *model.Organization:
+	case model.Movie:
+		return ec._Movie(ctx, sel, &obj)
+	case *model.Movie:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._Organization(ctx, sel, obj)
-	case model.Work:
-		return ec._Work(ctx, sel, &obj)
-	case *model.Work:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Work(ctx, sel, obj)
-	case model.WorkHolder:
-		return ec._WorkHolder(ctx, sel, &obj)
-	case *model.WorkHolder:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._WorkHolder(ctx, sel, obj)
+		return ec._Movie(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -3574,6 +1848,43 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var movieImplementors = []string{"Movie", "Node"}
+
+func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, obj *model.Movie) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, movieImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Movie")
+		case "id":
+			out.Values[i] = ec._Movie_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Movie_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "movieUrl":
+			out.Values[i] = ec._Movie_movieUrl(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var mutationImplementors = []string{"Mutation"}
 
@@ -3592,48 +1903,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "noop":
 			out.Values[i] = ec._Mutation_noop(ctx, field)
-		case "createOrganization":
-			out.Values[i] = ec._Mutation_createOrganization(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "updateOrganization":
-			out.Values[i] = ec._Mutation_updateOrganization(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deleteOrganization":
-			out.Values[i] = ec._Mutation_deleteOrganization(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "createWork":
-			out.Values[i] = ec._Mutation_createWork(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "updateWork":
-			out.Values[i] = ec._Mutation_updateWork(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deleteWork":
-			out.Values[i] = ec._Mutation_deleteWork(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "createWorkHolder":
-			out.Values[i] = ec._Mutation_createWorkHolder(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "updateWorkHolder":
-			out.Values[i] = ec._Mutation_updateWorkHolder(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "deleteWorkHolder":
-			out.Values[i] = ec._Mutation_deleteWorkHolder(ctx, field)
+		case "createMovie":
+			out.Values[i] = ec._Mutation_createMovie(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3672,60 +1943,6 @@ func (ec *executionContext) _NoopPayload(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
-var organizationImplementors = []string{"Organization", "Node"}
-
-func (ec *executionContext) _Organization(ctx context.Context, sel ast.SelectionSet, obj *model.Organization) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, organizationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Organization")
-		case "id":
-			out.Values[i] = ec._Organization_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "Name":
-			out.Values[i] = ec._Organization_Name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "upperOrganization":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Organization_upperOrganization(ctx, field, obj)
-				return res
-			})
-		case "lowerOrganizations":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Organization_lowerOrganizations(ctx, field, obj)
-				return res
-			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3752,7 +1969,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_node(ctx, field)
 				return res
 			})
-		case "organization":
+		case "movies":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -3760,68 +1977,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_organization(ctx, field)
-				return res
-			})
-		case "organizations":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_organizations(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "work":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_work(ctx, field)
-				return res
-			})
-		case "works":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_works(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "workHolder":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_workHolder(ctx, field)
-				return res
-			})
-		case "workHolders":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_workHolders(ctx, field)
+				res = ec._Query_movies(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3831,115 +1987,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var workImplementors = []string{"Work", "Node"}
-
-func (ec *executionContext) _Work(ctx context.Context, sel ast.SelectionSet, obj *model.Work) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, workImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Work")
-		case "id":
-			out.Values[i] = ec._Work_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "name":
-			out.Values[i] = ec._Work_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "price":
-			out.Values[i] = ec._Work_price(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "workHolders":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Work_workHolders(ctx, field, obj)
-				return res
-			})
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var workHolderImplementors = []string{"WorkHolder", "Node"}
-
-func (ec *executionContext) _WorkHolder(ctx context.Context, sel ast.SelectionSet, obj *model.WorkHolder) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, workHolderImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("WorkHolder")
-		case "id":
-			out.Values[i] = ec._WorkHolder_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "firstName":
-			out.Values[i] = ec._WorkHolder_firstName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "lastName":
-			out.Values[i] = ec._WorkHolder_lastName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "nickname":
-			out.Values[i] = ec._WorkHolder_nickname(ctx, field, obj)
-		case "organizations":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._WorkHolder_organizations(ctx, field, obj)
-				return res
-			})
-		case "holdWorks":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._WorkHolder_holdWorks(ctx, field, obj)
-				return res
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4224,25 +2271,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
-	return graphql.UnmarshalInt(v)
+func (ec *executionContext) marshalNMovie2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovie(ctx context.Context, sel ast.SelectionSet, v model.Movie) graphql.Marshaler {
+	return ec._Movie(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	res := graphql.MarshalInt(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) marshalNOrganization2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx context.Context, sel ast.SelectionSet, v model.Organization) graphql.Marshaler {
-	return ec._Organization(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNOrganization2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Organization) graphql.Marshaler {
+func (ec *executionContext) marshalNMovie2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovieᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Movie) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4266,7 +2299,7 @@ func (ec *executionContext) marshalNOrganization2ᚕᚖgithubᚗcomᚋsky0621ᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNOrganization2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx, sel, v[i])
+			ret[i] = ec.marshalNMovie2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovie(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4279,18 +2312,18 @@ func (ec *executionContext) marshalNOrganization2ᚕᚖgithubᚗcomᚋsky0621ᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNOrganization2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx context.Context, sel ast.SelectionSet, v *model.Organization) graphql.Marshaler {
+func (ec *executionContext) marshalNMovie2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovie(ctx context.Context, sel ast.SelectionSet, v *model.Movie) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._Organization(ctx, sel, v)
+	return ec._Movie(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNOrganizationInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationInput(ctx context.Context, v interface{}) (model.OrganizationInput, error) {
-	return ec.unmarshalInputOrganizationInput(ctx, v)
+func (ec *executionContext) unmarshalNMovieInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovieInput(ctx context.Context, v interface{}) (model.MovieInput, error) {
+	return ec.unmarshalInputMovieInput(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -4307,114 +2340,18 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNWork2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx context.Context, sel ast.SelectionSet, v model.Work) graphql.Marshaler {
-	return ec._Work(ctx, sel, &v)
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v interface{}) (graphql.Upload, error) {
+	return graphql.UnmarshalUpload(v)
 }
 
-func (ec *executionContext) marshalNWork2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Work) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNWork2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalNWork2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx context.Context, sel ast.SelectionSet, v *model.Work) graphql.Marshaler {
-	if v == nil {
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
-		return graphql.Null
 	}
-	return ec._Work(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNWorkHolder2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx context.Context, sel ast.SelectionSet, v model.WorkHolder) graphql.Marshaler {
-	return ec._WorkHolder(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNWorkHolder2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WorkHolder) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNWorkHolder2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalNWorkHolder2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx context.Context, sel ast.SelectionSet, v *model.WorkHolder) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._WorkHolder(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNWorkHolderInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderInput(ctx context.Context, v interface{}) (model.WorkHolderInput, error) {
-	return ec.unmarshalInputWorkHolderInput(ctx, v)
-}
-
-func (ec *executionContext) unmarshalNWorkInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkInput(ctx context.Context, v interface{}) (model.WorkInput, error) {
-	return ec.unmarshalInputWorkInput(ctx, v)
+	return res
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -4666,84 +2603,6 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {
-	return graphql.UnmarshalID(v)
-}
-
-func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	return graphql.MarshalID(v)
-}
-
-func (ec *executionContext) unmarshalOID2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		if tmp1, ok := v.([]interface{}); ok {
-			vSlice = tmp1
-		} else {
-			vSlice = []interface{}{v}
-		}
-	}
-	var err error
-	res := make([]*string, len(vSlice))
-	for i := range vSlice {
-		res[i], err = ec.unmarshalOID2ᚖstring(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalOID2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalOID2ᚖstring(ctx, sel, v[i])
-	}
-
-	return ret
-}
-
-func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOID2string(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec.marshalOID2string(ctx, sel, *v)
-}
-
-func (ec *executionContext) unmarshalOInt2int(ctx context.Context, v interface{}) (int, error) {
-	return graphql.UnmarshalInt(v)
-}
-
-func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
-	return graphql.MarshalInt(v)
-}
-
-func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOInt2int(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec.marshalOInt2int(ctx, sel, *v)
-}
-
 func (ec *executionContext) marshalONode2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐNode(ctx context.Context, sel ast.SelectionSet, v model.Node) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -4774,69 +2633,6 @@ func (ec *executionContext) marshalONoopPayload2ᚖgithubᚗcomᚋsky0621ᚋfs�
 	return ec._NoopPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOOrganization2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx context.Context, sel ast.SelectionSet, v model.Organization) graphql.Marshaler {
-	return ec._Organization(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOOrganization2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx context.Context, sel ast.SelectionSet, v []*model.Organization) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOOrganization2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalOOrganization2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganization(ctx context.Context, sel ast.SelectionSet, v *model.Organization) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Organization(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOOrganizationCondition2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationCondition(ctx context.Context, v interface{}) (model.OrganizationCondition, error) {
-	return ec.unmarshalInputOrganizationCondition(ctx, v)
-}
-
-func (ec *executionContext) unmarshalOOrganizationCondition2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationCondition(ctx context.Context, v interface{}) (*model.OrganizationCondition, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOOrganizationCondition2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐOrganizationCondition(ctx, v)
-	return &res, err
-}
-
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalString(v)
 }
@@ -4858,132 +2654,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return ec.marshalOString2string(ctx, sel, *v)
-}
-
-func (ec *executionContext) marshalOWork2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx context.Context, sel ast.SelectionSet, v model.Work) graphql.Marshaler {
-	return ec._Work(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOWork2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx context.Context, sel ast.SelectionSet, v []*model.Work) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOWork2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalOWork2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWork(ctx context.Context, sel ast.SelectionSet, v *model.Work) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Work(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOWorkCondition2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkCondition(ctx context.Context, v interface{}) (model.WorkCondition, error) {
-	return ec.unmarshalInputWorkCondition(ctx, v)
-}
-
-func (ec *executionContext) unmarshalOWorkCondition2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkCondition(ctx context.Context, v interface{}) (*model.WorkCondition, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOWorkCondition2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkCondition(ctx, v)
-	return &res, err
-}
-
-func (ec *executionContext) marshalOWorkHolder2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx context.Context, sel ast.SelectionSet, v model.WorkHolder) graphql.Marshaler {
-	return ec._WorkHolder(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOWorkHolder2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx context.Context, sel ast.SelectionSet, v []*model.WorkHolder) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOWorkHolder2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-	return ret
-}
-
-func (ec *executionContext) marshalOWorkHolder2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolder(ctx context.Context, sel ast.SelectionSet, v *model.WorkHolder) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._WorkHolder(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOWorkHolderCondition2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderCondition(ctx context.Context, v interface{}) (model.WorkHolderCondition, error) {
-	return ec.unmarshalInputWorkHolderCondition(ctx, v)
-}
-
-func (ec *executionContext) unmarshalOWorkHolderCondition2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderCondition(ctx context.Context, v interface{}) (*model.WorkHolderCondition, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOWorkHolderCondition2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐWorkHolderCondition(ctx, v)
-	return &res, err
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

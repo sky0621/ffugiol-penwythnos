@@ -4,9 +4,9 @@ services:
   db:
     restart: always
     image: postgres:12-alpine
-    container_name: db-container
+    container_name: fs-mng-backend-db-container
     ports:
-      - "65432:5432"
+      - "19999:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=localpass

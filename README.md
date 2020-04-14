@@ -1,4 +1,5 @@
-# ffugiol-penwythnos
+# fs-mng-backend
 GraphQLサーバー
 
-CA実装中
+## gqlgen
+

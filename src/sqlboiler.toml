@@ -1,7 +1,7 @@
 [psql]
   dbname = "localdb"
   host   = "localhost"
-  port   = 65432
+  port   = 19999
   user   = "postgres"
   pass   = "localpass"
   sslmode= "disable"

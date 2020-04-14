@@ -1,0 +1,25 @@
+extend type Mutation {
+    "動画をアップロード"
+    createMovie(input: MovieInput!): ID!
+}
+
+input MovieInput {
+    name: String!
+    movieFile: Upload!
+}
+
+"動画アップロード用"
+scalar Upload
+
+extend type Query {
+    movies: [Movie!]!
+}
+
+type Movie implements Node {
+    "UUID"
+    id: ID!
+    "名称"
+    name: String!
+    "動画URL"
+    movieUrl: String!
+}

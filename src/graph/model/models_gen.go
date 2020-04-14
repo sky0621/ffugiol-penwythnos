@@ -2,8 +2,28 @@
 
 package model
 
+import (
+	"github.com/99designs/gqlgen/graphql"
+)
+
 type Node interface {
 	IsNode()
+}
+
+type Movie struct {
+	// UUID
+	ID string `json:"id"`
+	// 名称
+	Name string `json:"name"`
+	// 動画URL
+	MovieURL string `json:"movieUrl"`
+}
+
+func (Movie) IsNode() {}
+
+type MovieInput struct {
+	Name      string         `json:"name"`
+	MovieFile graphql.Upload `json:"movieFile"`
 }
 
 type NoopInput struct {
