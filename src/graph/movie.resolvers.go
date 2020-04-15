@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
+	. "github.com/sky0621/fs-mng-backend/src/models"
 )
 
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (string, error) {
@@ -15,5 +16,18 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 }
 
 func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
-	panic(fmt.Errorf("not implemented"))
+	records, err := Movies().All(ctx, r.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []*model.Movie
+	for _, record := range records {
+		results = append(results, &model.Movie{
+			ID:       record.ID,
+			Name:     record.Name,
+			MovieURL: record.Filename,
+		})
+	}
+	return results, nil
 }
