@@ -6,13 +6,62 @@ package graph
 import (
 	"context"
 	"fmt"
+	"io"
+
+	"github.com/volatiletech/sqlboiler/boil"
 
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 	. "github.com/sky0621/fs-mng-backend/src/models"
+
+	"cloud.google.com/go/storage"
 )
 
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	// トランザクションを貼る
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if tx != nil {
+			// コミット発行されてなければ必ずロールバックされる
+			if err := tx.Rollback(); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}()
+
+	// DB登録
+	m := Movie{
+		Name:     input.Name,
+		Filename: input.MovieFile.Filename,
+	}
+	if err := m.Insert(ctx, r.DB, boil.Infer()); err != nil {
+		return "", err // トランザクションロールバックされる
+	}
+
+	// ファイルをCloud Storageにアップ
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return "", err // トランザクションロールバックされる
+	}
+	writer := client.Bucket(r.Bucket).Object(input.MovieFile.Filename).NewWriter(ctx)
+	if _, err := io.Copy(writer, input.MovieFile.File); err != nil {
+		return "", err // トランザクションロールバックされる
+	}
+	defer func() {
+		if writer != nil {
+			if err := writer.Close(); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}()
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	return m.ID, nil
 }
 
 func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
@@ -26,7 +75,7 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 		results = append(results, &model.Movie{
 			ID:       record.ID,
 			Name:     record.Name,
-			MovieURL: record.Filename,
+			MovieURL: record.Filename, // TODO: 署名付きURLに差し替える
 		})
 	}
 	return results, nil
