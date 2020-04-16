@@ -1,18 +1,23 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"time"
 
-	"github.com/go-chi/chi"
+	"github.com/99designs/gqlgen/graphql/playground"
+
 	"github.com/rs/cors"
 
+	"github.com/go-chi/chi"
+
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
 	_ "github.com/lib/pq"
 	"github.com/sky0621/fs-mng-backend/src/graph"
 	"github.com/sky0621/fs-mng-backend/src/graph/generated"
@@ -70,11 +75,21 @@ func main() {
 	})
 	r.Use(cors.Handler)
 
-	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	r.Handle("/graphql", handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
-		DB:     db,
-		Bucket: bucket,
-	}})))
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+		Resolvers: &graph.Resolver{
+			DB:     db,
+			Bucket: bucket,
+		},
+	}))
+	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) (userMessage error) {
+		// send this panic somewhere
+		log.Print(err)
+		debug.PrintStack()
+		return errors.New("user message on panic")
+	})
+
+	r.Handle("/", playground.Handler("fs-mng-backend", "/query"))
+	r.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
