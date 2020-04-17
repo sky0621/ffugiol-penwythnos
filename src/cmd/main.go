@@ -59,13 +59,9 @@ func main() {
 	/*
 	 * setup GCP client
 	 */
-	var gcsClient gcp.CloudStorageClient
-	{
-		var err error
-		gcsClient, err = gcp.NewCloudStorageClient(context.Background(), os.Getenv("BUCKET"))
-		if err != nil {
-			panic(err)
-		}
+	gcsClient, err := gcp.NewCloudStorageClient(context.Background(), os.Getenv("BUCKET"))
+	if err != nil {
+		panic(err)
 	}
 
 	/*

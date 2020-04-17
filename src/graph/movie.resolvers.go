@@ -8,13 +8,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sky0621/fs-mng-backend/src/util"
-
-	"github.com/volatiletech/sqlboiler/boil"
-	"golang.org/x/xerrors"
-
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 	. "github.com/sky0621/fs-mng-backend/src/models"
+	"github.com/sky0621/fs-mng-backend/src/util"
+	"github.com/volatiletech/sqlboiler/boil"
+	"golang.org/x/xerrors"
 )
 
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (string, error) {
@@ -36,6 +34,7 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 	m := Movie{
 		Name:     input.Name,
 		Filename: input.MovieFile.Filename,
+		Scale:    input.Scale,
 	}
 	if err := m.Insert(ctx, r.DB, boil.Infer()); err != nil {
 		// トランザクションロールバックされる
@@ -72,6 +71,7 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 			ID:       record.ID,
 			Name:     record.Name,
 			MovieURL: url,
+			Scale:    record.Scale,
 		})
 	}
 	return results, nil

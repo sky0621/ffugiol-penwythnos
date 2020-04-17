@@ -4,8 +4,12 @@ extend type Mutation {
 }
 
 input MovieInput {
+    "名称"
     name: String!
+    "動画URL"
     movieFile: Upload!
+    "秒数"
+    scale: Int!
 }
 
 "動画アップロード用"
@@ -22,4 +26,6 @@ type Movie implements Node {
     name: String!
     "動画URL"
     movieUrl: String!
+    "秒数"
+    scale: Int!
 }

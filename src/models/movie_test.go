@@ -568,7 +568,7 @@ func testMoviesSelect(t *testing.T) {
 }
 
 var (
-	movieDBTypes = map[string]string{`ID`: `character varying`, `Name`: `character varying`, `Filename`: `character varying`}
+	movieDBTypes = map[string]string{`ID`: `character varying`, `Name`: `character varying`, `Filename`: `character varying`, `Scale`: `integer`}
 	_            = bytes.MinRead
 )
 

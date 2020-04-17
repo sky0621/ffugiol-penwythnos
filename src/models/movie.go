@@ -26,6 +26,7 @@ type Movie struct {
 	ID       string `boil:"id" json:"id" toml:"id" yaml:"id"`
 	Name     string `boil:"name" json:"name" toml:"name" yaml:"name"`
 	Filename string `boil:"filename" json:"filename" toml:"filename" yaml:"filename"`
+	Scale    int    `boil:"scale" json:"scale" toml:"scale" yaml:"scale"`
 
 	R *movieR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L movieL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -35,10 +36,12 @@ var MovieColumns = struct {
 	ID       string
 	Name     string
 	Filename string
+	Scale    string
 }{
 	ID:       "id",
 	Name:     "name",
 	Filename: "filename",
+	Scale:    "scale",
 }
 
 // Generated where
@@ -59,14 +62,32 @@ func (w whereHelperstring) IN(slice []string) qm.QueryMod {
 	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
 }
 
+type whereHelperint struct{ field string }
+
+func (w whereHelperint) EQ(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.EQ, x) }
+func (w whereHelperint) NEQ(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
+func (w whereHelperint) LT(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.LT, x) }
+func (w whereHelperint) LTE(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.LTE, x) }
+func (w whereHelperint) GT(x int) qm.QueryMod  { return qmhelper.Where(w.field, qmhelper.GT, x) }
+func (w whereHelperint) GTE(x int) qm.QueryMod { return qmhelper.Where(w.field, qmhelper.GTE, x) }
+func (w whereHelperint) IN(slice []int) qm.QueryMod {
+	values := make([]interface{}, 0, len(slice))
+	for _, value := range slice {
+		values = append(values, value)
+	}
+	return qm.WhereIn(fmt.Sprintf("%s IN ?", w.field), values...)
+}
+
 var MovieWhere = struct {
 	ID       whereHelperstring
 	Name     whereHelperstring
 	Filename whereHelperstring
+	Scale    whereHelperint
 }{
 	ID:       whereHelperstring{field: "\"movie\".\"id\""},
 	Name:     whereHelperstring{field: "\"movie\".\"name\""},
 	Filename: whereHelperstring{field: "\"movie\".\"filename\""},
+	Scale:    whereHelperint{field: "\"movie\".\"scale\""},
 }
 
 // MovieRels is where relationship names are stored.
@@ -86,9 +107,9 @@ func (*movieR) NewStruct() *movieR {
 type movieL struct{}
 
 var (
-	movieAllColumns            = []string{"id", "name", "filename"}
+	movieAllColumns            = []string{"id", "name", "filename", "scale"}
 	movieColumnsWithoutDefault = []string{"id", "name", "filename"}
-	movieColumnsWithDefault    = []string{}
+	movieColumnsWithDefault    = []string{"scale"}
 	moviePrimaryKeyColumns     = []string{"id"}
 )
 
