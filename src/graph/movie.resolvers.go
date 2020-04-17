@@ -6,21 +6,22 @@ package graph
 import (
 	"context"
 	"fmt"
-	"io"
+	"time"
+
+	"github.com/sky0621/fs-mng-backend/src/util"
 
 	"github.com/volatiletech/sqlboiler/boil"
+	"golang.org/x/xerrors"
 
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 	. "github.com/sky0621/fs-mng-backend/src/models"
-
-	"cloud.google.com/go/storage"
 )
 
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (string, error) {
 	// トランザクションを貼る
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return "", err
+		return "", xerrors.Errorf("failed to BeginTx: %w", err)
 	}
 	defer func() {
 		if tx != nil {
@@ -37,28 +38,19 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 		Filename: input.MovieFile.Filename,
 	}
 	if err := m.Insert(ctx, r.DB, boil.Infer()); err != nil {
-		return "", err // トランザクションロールバックされる
+		// トランザクションロールバックされる
+		return "", xerrors.Errorf("failed to Insert: %w", err)
 	}
 
 	// ファイルをCloud Storageにアップ
-	client, err := storage.NewClient(ctx)
-	if err != nil {
-		return "", err // トランザクションロールバックされる
+	if err := r.GCSClient.ExecUploadObject(input.MovieFile.Filename, input.MovieFile.File); err != nil {
+		// トランザクションロールバックされる
+		return "", xerrors.Errorf("failed to GCSClient.ExecUploadObject: %w", err)
 	}
-	writer := client.Bucket(r.Bucket).Object(input.MovieFile.Filename).NewWriter(ctx)
-	if _, err := io.Copy(writer, input.MovieFile.File); err != nil {
-		return "", err // トランザクションロールバックされる
-	}
-	defer func() {
-		if writer != nil {
-			if err := writer.Close(); err != nil {
-				fmt.Println(err)
-			}
-		}
-	}()
 
 	if err := tx.Commit(); err != nil {
-		return "", err
+		// トランザクションロールバックされる
+		return "", xerrors.Errorf("failed to Commit: %w", err)
 	}
 
 	return m.ID, nil
@@ -67,15 +59,19 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 	records, err := Movies().All(ctx, r.DB)
 	if err != nil {
-		return nil, err
+		return nil, xerrors.Errorf("failed to Movies ALL: %w", err)
 	}
 
 	var results []*model.Movie
 	for _, record := range records {
+		url, err := r.GCSClient.ExecSignedURL(record.Filename, util.GetExpire(30*time.Second))
+		if err != nil {
+			return nil, xerrors.Errorf("failed to GCSClient.ExecSignedURL: %w", err)
+		}
 		results = append(results, &model.Movie{
 			ID:       record.ID,
 			Name:     record.Name,
-			MovieURL: record.Filename, // TODO: 署名付きURLに差し替える
+			MovieURL: url,
 		})
 	}
 	return results, nil

@@ -1,12 +1,16 @@
 package graph
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/sky0621/fs-mng-backend/src/gcp"
+)
 
 // This file will not be regenerated automatically.
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	DB     *sql.DB
-	Bucket string
+	DB        *sql.DB
+	GCSClient gcp.CloudStorageClient
 }
