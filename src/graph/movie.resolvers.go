@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 	. "github.com/sky0621/fs-mng-backend/src/models"
 	"github.com/sky0621/fs-mng-backend/src/util"
@@ -32,6 +34,7 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 
 	// DB登録
 	m := Movie{
+		ID:       uuid.New().String(),
 		Name:     input.Name,
 		Filename: input.MovieFile.Filename,
 		Scale:    input.Scale,

@@ -9,6 +9,7 @@ require (
 	github.com/friendsofgo/errors v0.9.2
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/gofrs/uuid v3.2.0+incompatible // indirect
+	github.com/google/uuid v1.1.1
 	github.com/kat-co/vala v0.0.0-20170210184112-42e1d8b61f12
 	github.com/lib/pq v1.3.0
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
