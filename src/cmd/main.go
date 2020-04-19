@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+
 	"github.com/sky0621/fs-mng-backend/src/gcp"
 
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -87,6 +89,11 @@ func main() {
 				GCSClient: gcsClient,
 			},
 		}))
+		var mb int64 = 1 << 20
+		srv.AddTransport(transport.MultipartForm{
+			MaxMemory:     128 * mb,
+			MaxUploadSize: 100 * mb,
+		})
 
 		router.Handle("/", playground.Handler("fs-mng-backend", "/query"))
 		router.Handle("/query", srv)
