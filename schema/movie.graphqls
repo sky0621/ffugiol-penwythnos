@@ -1,6 +1,6 @@
 extend type Mutation {
     "動画をアップロード"
-    createMovie(input: MovieInput!): ID!
+    createMovie(input: MovieInput!): MutationResponse
 }
 
 input MovieInput {

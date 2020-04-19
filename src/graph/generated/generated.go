@@ -56,6 +56,10 @@ type ComplexityRoot struct {
 		Noop        func(childComplexity int, input *model.NoopInput) int
 	}
 
+	MutationResponse struct {
+		ID func(childComplexity int) int
+	}
+
 	NoopPayload struct {
 		ClientMutationID func(childComplexity int) int
 	}
@@ -68,7 +72,7 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	Noop(ctx context.Context, input *model.NoopInput) (*model.NoopPayload, error)
-	CreateMovie(ctx context.Context, input model.MovieInput) (string, error)
+	CreateMovie(ctx context.Context, input model.MovieInput) (*model.MutationResponse, error)
 }
 type QueryResolver interface {
 	Node(ctx context.Context, id string) (model.Node, error)
@@ -141,6 +145,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Noop(childComplexity, args["input"].(*model.NoopInput)), true
+
+	case "MutationResponse.id":
+		if e.complexity.MutationResponse.ID == nil {
+			break
+		}
+
+		return e.complexity.MutationResponse.ID(childComplexity), true
 
 	case "NoopPayload.clientMutationId":
 		if e.complexity.NoopPayload.ClientMutationID == nil {
@@ -234,7 +245,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	&ast.Source{Name: "../schema/movie.graphqls", Input: `extend type Mutation {
     "動画をアップロード"
-    createMovie(input: MovieInput!): ID!
+    createMovie(input: MovieInput!): MutationResponse
 }
 
 input MovieInput {
@@ -288,6 +299,10 @@ input NoopInput {
 
 type NoopPayload {
     clientMutationId: String
+}
+
+type MutationResponse {
+    id: ID
 }
 `, BuiltIn: false},
 }
@@ -594,14 +609,42 @@ func (ec *executionContext) _Mutation_createMovie(ctx context.Context, field gra
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*model.MutationResponse)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalOMutationResponse2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMutationResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MutationResponse_id(ctx context.Context, field graphql.CollectedField, obj *model.MutationResponse) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "MutationResponse",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _NoopPayload_clientMutationId(ctx context.Context, field graphql.CollectedField, obj *model.NoopPayload) (ret graphql.Marshaler) {
@@ -1964,9 +2007,30 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_noop(ctx, field)
 		case "createMovie":
 			out.Values[i] = ec._Mutation_createMovie(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mutationResponseImplementors = []string{"MutationResponse"}
+
+func (ec *executionContext) _MutationResponse(ctx context.Context, sel ast.SelectionSet, obj *model.MutationResponse) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationResponseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MutationResponse")
+		case "id":
+			out.Values[i] = ec._MutationResponse_id(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2674,6 +2738,40 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 		return graphql.Null
 	}
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalOID2string(ctx context.Context, v interface{}) (string, error) {
+	return graphql.UnmarshalID(v)
+}
+
+func (ec *executionContext) marshalOID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	return graphql.MarshalID(v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOID2string(ctx, v)
+	return &res, err
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec.marshalOID2string(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOMutationResponse2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMutationResponse(ctx context.Context, sel ast.SelectionSet, v model.MutationResponse) graphql.Marshaler {
+	return ec._MutationResponse(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOMutationResponse2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMutationResponse(ctx context.Context, sel ast.SelectionSet, v *model.MutationResponse) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._MutationResponse(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalONode2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐNode(ctx context.Context, sel ast.SelectionSet, v model.Node) graphql.Marshaler {

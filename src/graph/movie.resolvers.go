@@ -15,11 +15,11 @@ import (
 	"golang.org/x/xerrors"
 )
 
-func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (string, error) {
+func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (*model.MutationResponse, error) {
 	// トランザクションを貼る
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return "", xerrors.Errorf("failed to BeginTx: %w", err)
+		return nil, xerrors.Errorf("failed to BeginTx: %w", err)
 	}
 	defer func() {
 		if tx != nil {
@@ -38,21 +38,23 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 	}
 	if err := m.Insert(ctx, r.DB, boil.Infer()); err != nil {
 		// トランザクションロールバックされる
-		return "", xerrors.Errorf("failed to Insert: %w", err)
+		return nil, xerrors.Errorf("failed to Insert: %w", err)
 	}
 
 	// ファイルをCloud Storageにアップ
 	if err := r.GCSClient.ExecUploadObject(input.MovieFile.Filename, input.MovieFile.File); err != nil {
 		// トランザクションロールバックされる
-		return "", xerrors.Errorf("failed to GCSClient.ExecUploadObject: %w", err)
+		return nil, xerrors.Errorf("failed to GCSClient.ExecUploadObject: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
 		// トランザクションロールバックされる
-		return "", xerrors.Errorf("failed to Commit: %w", err)
+		return nil, xerrors.Errorf("failed to Commit: %w", err)
 	}
 
-	return m.ID, nil
+	return &model.MutationResponse{
+		ID: &m.ID,
+	}, nil
 }
 
 func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {

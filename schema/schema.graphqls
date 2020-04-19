@@ -23,3 +23,7 @@ input NoopInput {
 type NoopPayload {
     clientMutationId: String
 }
+
+type MutationResponse {
+    id: ID
+}

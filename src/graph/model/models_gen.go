@@ -32,6 +32,10 @@ type MovieInput struct {
 	Scale int `json:"scale"`
 }
 
+type MutationResponse struct {
+	ID *string `json:"id"`
+}
+
 type NoopInput struct {
 	ClientMutationID *string `json:"clientMutationId"`
 }
