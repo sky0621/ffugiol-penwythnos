@@ -27,3 +27,5 @@ type NoopPayload {
 type MutationResponse {
     id: ID
 }
+
+scalar Time

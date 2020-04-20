@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
+	"github.com/sky0621/fs-mng-backend/src/graph/generated"
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 	. "github.com/sky0621/fs-mng-backend/src/models"
 	"github.com/sky0621/fs-mng-backend/src/util"
@@ -81,3 +81,27 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 	}
 	return results, nil
 }
+
+func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) ([]*model.ViewingHistory, error) {
+	records, err := ViewingHistories(ViewingHistoryWhere.MovieID.EQ(obj.ID)).All(ctx, r.DB)
+	if err != nil {
+		return nil, xerrors.Errorf("failed to ViewingHistories ALL [movie_id:%s]: %w", obj.ID, err)
+	}
+
+	var results []*model.ViewingHistory
+	for _, record := range records {
+		results = append(results, &model.ViewingHistory{
+			ID: record.ID,
+			Viewer: &model.Viewer{
+				ID: record.UserID,
+			},
+			Movie: obj,
+		})
+	}
+	return results, nil
+}
+
+// Movie returns generated.MovieResolver implementation.
+func (r *Resolver) Movie() generated.MovieResolver { return &movieResolver{r} }
+
+type movieResolver struct{ *Resolver }

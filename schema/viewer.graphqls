@@ -1,0 +1,13 @@
+extend type Query {
+    viewer(id: ID!): Viewer!
+    viewers: [Viewer!]!
+}
+
+type Viewer implements Node {
+    "UUID"
+    id: ID!
+    "名前"
+    name: String!
+    "ニックネーム"
+    nickname: String
+}

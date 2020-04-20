@@ -28,4 +28,6 @@ type Movie implements Node {
     movieUrl: String!
     "秒数"
     scale: Int!
+    "視聴履歴"
+    viewingHistories: [ViewingHistory!]
 }

@@ -3,25 +3,14 @@
 package model
 
 import (
+	"time"
+
 	"github.com/99designs/gqlgen/graphql"
 )
 
 type Node interface {
 	IsNode()
 }
-
-type Movie struct {
-	// UUID
-	ID string `json:"id"`
-	// 名称
-	Name string `json:"name"`
-	// 動画URL
-	MovieURL string `json:"movieUrl"`
-	// 秒数
-	Scale int `json:"scale"`
-}
-
-func (Movie) IsNode() {}
 
 type MovieInput struct {
 	// 名称
@@ -43,3 +32,34 @@ type NoopInput struct {
 type NoopPayload struct {
 	ClientMutationID *string `json:"clientMutationId"`
 }
+
+type RecordViewingHistoryInput struct {
+	// 視聴者ID
+	UserID string `json:"userId"`
+	// 動画ID
+	MovieID string `json:"movieId"`
+}
+
+type Viewer struct {
+	// UUID
+	ID string `json:"id"`
+	// 名前
+	Name string `json:"name"`
+	// ニックネーム
+	Nickname *string `json:"nickname"`
+}
+
+func (Viewer) IsNode() {}
+
+type ViewingHistory struct {
+	// UUID
+	ID string `json:"id"`
+	// 視聴者
+	Viewer *Viewer `json:"viewer"`
+	// 動画
+	Movie *Movie `json:"movie"`
+	// 視聴日時
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+func (ViewingHistory) IsNode() {}

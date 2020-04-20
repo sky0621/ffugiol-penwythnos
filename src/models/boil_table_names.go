@@ -4,7 +4,11 @@
 package models
 
 var TableNames = struct {
-	Movie string
+	Movie          string
+	Viewer         string
+	ViewingHistory string
 }{
-	Movie: "movie",
+	Movie:          "movie",
+	Viewer:         "viewer",
+	ViewingHistory: "viewing_history",
 }

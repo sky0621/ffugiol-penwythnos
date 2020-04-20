@@ -7,4 +7,8 @@ import "testing"
 
 func TestUpsert(t *testing.T) {
 	t.Run("Movies", testMoviesUpsert)
+
+	t.Run("Viewers", testViewersUpsert)
+
+	t.Run("ViewingHistories", testViewingHistoriesUpsert)
 }

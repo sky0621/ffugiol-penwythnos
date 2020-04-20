@@ -13,51 +13,77 @@ import "testing"
 // Separating the tests thusly grants avoidance of Postgres deadlocks.
 func TestParent(t *testing.T) {
 	t.Run("Movies", testMovies)
+	t.Run("Viewers", testViewers)
+	t.Run("ViewingHistories", testViewingHistories)
 }
 
 func TestDelete(t *testing.T) {
 	t.Run("Movies", testMoviesDelete)
+	t.Run("Viewers", testViewersDelete)
+	t.Run("ViewingHistories", testViewingHistoriesDelete)
 }
 
 func TestQueryDeleteAll(t *testing.T) {
 	t.Run("Movies", testMoviesQueryDeleteAll)
+	t.Run("Viewers", testViewersQueryDeleteAll)
+	t.Run("ViewingHistories", testViewingHistoriesQueryDeleteAll)
 }
 
 func TestSliceDeleteAll(t *testing.T) {
 	t.Run("Movies", testMoviesSliceDeleteAll)
+	t.Run("Viewers", testViewersSliceDeleteAll)
+	t.Run("ViewingHistories", testViewingHistoriesSliceDeleteAll)
 }
 
 func TestExists(t *testing.T) {
 	t.Run("Movies", testMoviesExists)
+	t.Run("Viewers", testViewersExists)
+	t.Run("ViewingHistories", testViewingHistoriesExists)
 }
 
 func TestFind(t *testing.T) {
 	t.Run("Movies", testMoviesFind)
+	t.Run("Viewers", testViewersFind)
+	t.Run("ViewingHistories", testViewingHistoriesFind)
 }
 
 func TestBind(t *testing.T) {
 	t.Run("Movies", testMoviesBind)
+	t.Run("Viewers", testViewersBind)
+	t.Run("ViewingHistories", testViewingHistoriesBind)
 }
 
 func TestOne(t *testing.T) {
 	t.Run("Movies", testMoviesOne)
+	t.Run("Viewers", testViewersOne)
+	t.Run("ViewingHistories", testViewingHistoriesOne)
 }
 
 func TestAll(t *testing.T) {
 	t.Run("Movies", testMoviesAll)
+	t.Run("Viewers", testViewersAll)
+	t.Run("ViewingHistories", testViewingHistoriesAll)
 }
 
 func TestCount(t *testing.T) {
 	t.Run("Movies", testMoviesCount)
+	t.Run("Viewers", testViewersCount)
+	t.Run("ViewingHistories", testViewingHistoriesCount)
 }
 
 func TestHooks(t *testing.T) {
 	t.Run("Movies", testMoviesHooks)
+	t.Run("Viewers", testViewersHooks)
+	t.Run("ViewingHistories", testViewingHistoriesHooks)
 }
 
 func TestInsert(t *testing.T) {
 	t.Run("Movies", testMoviesInsert)
 	t.Run("Movies", testMoviesInsertWhitelist)
+	t.Run("Viewers", testViewersInsert)
+	t.Run("Viewers", testViewersInsertWhitelist)
+	t.Run("ViewingHistories", testViewingHistoriesInsert)
+	t.Run("ViewingHistories", testViewingHistoriesInsertWhitelist)
 }
 
 // TestToOne tests cannot be run in parallel
@@ -102,20 +128,30 @@ func TestToManyRemove(t *testing.T) {}
 
 func TestReload(t *testing.T) {
 	t.Run("Movies", testMoviesReload)
+	t.Run("Viewers", testViewersReload)
+	t.Run("ViewingHistories", testViewingHistoriesReload)
 }
 
 func TestReloadAll(t *testing.T) {
 	t.Run("Movies", testMoviesReloadAll)
+	t.Run("Viewers", testViewersReloadAll)
+	t.Run("ViewingHistories", testViewingHistoriesReloadAll)
 }
 
 func TestSelect(t *testing.T) {
 	t.Run("Movies", testMoviesSelect)
+	t.Run("Viewers", testViewersSelect)
+	t.Run("ViewingHistories", testViewingHistoriesSelect)
 }
 
 func TestUpdate(t *testing.T) {
 	t.Run("Movies", testMoviesUpdate)
+	t.Run("Viewers", testViewersUpdate)
+	t.Run("ViewingHistories", testViewingHistoriesUpdate)
 }
 
 func TestSliceUpdateAll(t *testing.T) {
 	t.Run("Movies", testMoviesSliceUpdateAll)
+	t.Run("Viewers", testViewersSliceUpdateAll)
+	t.Run("ViewingHistories", testViewingHistoriesSliceUpdateAll)
 }

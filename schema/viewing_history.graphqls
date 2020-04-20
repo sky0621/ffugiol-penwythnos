@@ -1,0 +1,27 @@
+extend type Mutation {
+    "視聴履歴の記録"
+    recordViewingHistory(input: RecordViewingHistoryInput!): MutationResponse
+}
+
+input RecordViewingHistoryInput {
+    "視聴者ID"
+    userId: ID!
+    "動画ID"
+    movieId: ID!
+}
+
+extend type Query {
+    "視聴履歴一覧"
+    viewingHistories(userId: ID, movieId: ID): [ViewingHistory!]!
+}
+
+type ViewingHistory implements Node {
+    "UUID"
+    id: ID!
+    "視聴者"
+    viewer: Viewer!
+    "動画"
+    movie: Movie!
+    "視聴日時"
+    createdAt: Time!
+}

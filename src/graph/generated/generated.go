@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -36,6 +37,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Movie() MovieResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 }
@@ -45,15 +47,17 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Movie struct {
-		ID       func(childComplexity int) int
-		MovieURL func(childComplexity int) int
-		Name     func(childComplexity int) int
-		Scale    func(childComplexity int) int
+		ID               func(childComplexity int) int
+		MovieURL         func(childComplexity int) int
+		Name             func(childComplexity int) int
+		Scale            func(childComplexity int) int
+		ViewingHistories func(childComplexity int) int
 	}
 
 	Mutation struct {
-		CreateMovie func(childComplexity int, input model.MovieInput) int
-		Noop        func(childComplexity int, input *model.NoopInput) int
+		CreateMovie          func(childComplexity int, input model.MovieInput) int
+		Noop                 func(childComplexity int, input *model.NoopInput) int
+		RecordViewingHistory func(childComplexity int, input model.RecordViewingHistoryInput) int
 	}
 
 	MutationResponse struct {
@@ -65,18 +69,41 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Movies func(childComplexity int) int
-		Node   func(childComplexity int, id string) int
+		Movies           func(childComplexity int) int
+		Node             func(childComplexity int, id string) int
+		Viewer           func(childComplexity int, id string) int
+		Viewers          func(childComplexity int) int
+		ViewingHistories func(childComplexity int, userID *string, movieID *string) int
+	}
+
+	Viewer struct {
+		ID       func(childComplexity int) int
+		Name     func(childComplexity int) int
+		Nickname func(childComplexity int) int
+	}
+
+	ViewingHistory struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Movie     func(childComplexity int) int
+		Viewer    func(childComplexity int) int
 	}
 }
 
+type MovieResolver interface {
+	ViewingHistories(ctx context.Context, obj *model.Movie) ([]*model.ViewingHistory, error)
+}
 type MutationResolver interface {
 	Noop(ctx context.Context, input *model.NoopInput) (*model.NoopPayload, error)
 	CreateMovie(ctx context.Context, input model.MovieInput) (*model.MutationResponse, error)
+	RecordViewingHistory(ctx context.Context, input model.RecordViewingHistoryInput) (*model.MutationResponse, error)
 }
 type QueryResolver interface {
 	Node(ctx context.Context, id string) (model.Node, error)
 	Movies(ctx context.Context) ([]*model.Movie, error)
+	Viewer(ctx context.Context, id string) (*model.Viewer, error)
+	Viewers(ctx context.Context) ([]*model.Viewer, error)
+	ViewingHistories(ctx context.Context, userID *string, movieID *string) ([]*model.ViewingHistory, error)
 }
 
 type executableSchema struct {
@@ -122,6 +149,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Movie.Scale(childComplexity), true
 
+	case "Movie.viewingHistories":
+		if e.complexity.Movie.ViewingHistories == nil {
+			break
+		}
+
+		return e.complexity.Movie.ViewingHistories(childComplexity), true
+
 	case "Mutation.createMovie":
 		if e.complexity.Mutation.CreateMovie == nil {
 			break
@@ -145,6 +179,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Noop(childComplexity, args["input"].(*model.NoopInput)), true
+
+	case "Mutation.recordViewingHistory":
+		if e.complexity.Mutation.RecordViewingHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_recordViewingHistory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RecordViewingHistory(childComplexity, args["input"].(model.RecordViewingHistoryInput)), true
 
 	case "MutationResponse.id":
 		if e.complexity.MutationResponse.ID == nil {
@@ -178,6 +224,86 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Node(childComplexity, args["id"].(string)), true
+
+	case "Query.viewer":
+		if e.complexity.Query.Viewer == nil {
+			break
+		}
+
+		args, err := ec.field_Query_viewer_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Viewer(childComplexity, args["id"].(string)), true
+
+	case "Query.viewers":
+		if e.complexity.Query.Viewers == nil {
+			break
+		}
+
+		return e.complexity.Query.Viewers(childComplexity), true
+
+	case "Query.viewingHistories":
+		if e.complexity.Query.ViewingHistories == nil {
+			break
+		}
+
+		args, err := ec.field_Query_viewingHistories_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ViewingHistories(childComplexity, args["userId"].(*string), args["movieId"].(*string)), true
+
+	case "Viewer.id":
+		if e.complexity.Viewer.ID == nil {
+			break
+		}
+
+		return e.complexity.Viewer.ID(childComplexity), true
+
+	case "Viewer.name":
+		if e.complexity.Viewer.Name == nil {
+			break
+		}
+
+		return e.complexity.Viewer.Name(childComplexity), true
+
+	case "Viewer.nickname":
+		if e.complexity.Viewer.Nickname == nil {
+			break
+		}
+
+		return e.complexity.Viewer.Nickname(childComplexity), true
+
+	case "ViewingHistory.createdAt":
+		if e.complexity.ViewingHistory.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.ViewingHistory.CreatedAt(childComplexity), true
+
+	case "ViewingHistory.id":
+		if e.complexity.ViewingHistory.ID == nil {
+			break
+		}
+
+		return e.complexity.ViewingHistory.ID(childComplexity), true
+
+	case "ViewingHistory.movie":
+		if e.complexity.ViewingHistory.Movie == nil {
+			break
+		}
+
+		return e.complexity.ViewingHistory.Movie(childComplexity), true
+
+	case "ViewingHistory.viewer":
+		if e.complexity.ViewingHistory.Viewer == nil {
+			break
+		}
+
+		return e.complexity.ViewingHistory.Viewer(childComplexity), true
 
 	}
 	return 0, false
@@ -273,6 +399,8 @@ type Movie implements Node {
     movieUrl: String!
     "秒数"
     scale: Int!
+    "視聴履歴"
+    viewingHistories: [ViewingHistory!]
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "../schema/schema.graphqls", Input: `# Global Object Identification ... 全データを共通のIDでユニーク化
@@ -303,6 +431,50 @@ type NoopPayload {
 
 type MutationResponse {
     id: ID
+}
+
+scalar Time
+`, BuiltIn: false},
+	&ast.Source{Name: "../schema/viewer.graphqls", Input: `extend type Query {
+    viewer(id: ID!): Viewer!
+    viewers: [Viewer!]!
+}
+
+type Viewer implements Node {
+    "UUID"
+    id: ID!
+    "名前"
+    name: String!
+    "ニックネーム"
+    nickname: String
+}
+`, BuiltIn: false},
+	&ast.Source{Name: "../schema/viewing_history.graphqls", Input: `extend type Mutation {
+    "視聴履歴の記録"
+    recordViewingHistory(input: RecordViewingHistoryInput!): MutationResponse
+}
+
+input RecordViewingHistoryInput {
+    "視聴者ID"
+    userId: ID!
+    "動画ID"
+    movieId: ID!
+}
+
+extend type Query {
+    "視聴履歴一覧"
+    viewingHistories(userId: ID, movieId: ID): [ViewingHistory!]!
+}
+
+type ViewingHistory implements Node {
+    "UUID"
+    id: ID!
+    "視聴者"
+    viewer: Viewer!
+    "動画"
+    movie: Movie!
+    "視聴日時"
+    createdAt: Time!
 }
 `, BuiltIn: false},
 }
@@ -340,6 +512,20 @@ func (ec *executionContext) field_Mutation_noop_args(ctx context.Context, rawArg
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_recordViewingHistory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.RecordViewingHistoryInput
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNRecordViewingHistoryInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐRecordViewingHistoryInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -365,6 +551,42 @@ func (ec *executionContext) field_Query_node_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_viewer_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_viewingHistories_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["userId"]; ok {
+		arg0, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["movieId"]; ok {
+		arg1, err = ec.unmarshalOID2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["movieId"] = arg1
 	return args, nil
 }
 
@@ -540,6 +762,37 @@ func (ec *executionContext) _Movie_scale(ctx context.Context, field graphql.Coll
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Movie_viewingHistories(ctx context.Context, field graphql.CollectedField, obj *model.Movie) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Movie",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Movie().ViewingHistories(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ViewingHistory)
+	fc.Result = res
+	return ec.marshalOViewingHistory2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistoryᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_noop(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -603,6 +856,44 @@ func (ec *executionContext) _Mutation_createMovie(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Mutation().CreateMovie(rctx, args["input"].(model.MovieInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.MutationResponse)
+	fc.Result = res
+	return ec.marshalOMutationResponse2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMutationResponse(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_recordViewingHistory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_recordViewingHistory_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().RecordViewingHistory(rctx, args["input"].(model.RecordViewingHistoryInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -750,6 +1041,122 @@ func (ec *executionContext) _Query_movies(ctx context.Context, field graphql.Col
 	return ec.marshalNMovie2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovieᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_viewer(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_viewer_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Viewer(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Viewer)
+	fc.Result = res
+	return ec.marshalNViewer2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_viewers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Viewers(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Viewer)
+	fc.Result = res
+	return ec.marshalNViewer2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewerᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_viewingHistories(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_viewingHistories_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().ViewingHistories(rctx, args["userId"].(*string), args["movieId"].(*string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ViewingHistory)
+	fc.Result = res
+	return ec.marshalNViewingHistory2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistoryᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -817,6 +1224,241 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Viewer_id(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Viewer",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Viewer_name(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Viewer",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Viewer_nickname(ctx context.Context, field graphql.CollectedField, obj *model.Viewer) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Viewer",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Nickname, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ViewingHistory_id(ctx context.Context, field graphql.CollectedField, obj *model.ViewingHistory) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ViewingHistory",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ViewingHistory_viewer(ctx context.Context, field graphql.CollectedField, obj *model.ViewingHistory) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ViewingHistory",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Viewer, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Viewer)
+	fc.Result = res
+	return ec.marshalNViewer2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewer(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ViewingHistory_movie(ctx context.Context, field graphql.CollectedField, obj *model.ViewingHistory) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ViewingHistory",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Movie, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Movie)
+	fc.Result = res
+	return ec.marshalNMovie2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐMovie(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ViewingHistory_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.ViewingHistory) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ViewingHistory",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CreatedAt, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -1922,6 +2564,30 @@ func (ec *executionContext) unmarshalInputNoopInput(ctx context.Context, obj int
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputRecordViewingHistoryInput(ctx context.Context, obj interface{}) (model.RecordViewingHistoryInput, error) {
+	var it model.RecordViewingHistoryInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "userId":
+			var err error
+			it.UserID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "movieId":
+			var err error
+			it.MovieID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -1937,6 +2603,20 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Movie(ctx, sel, obj)
+	case model.Viewer:
+		return ec._Viewer(ctx, sel, &obj)
+	case *model.Viewer:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Viewer(ctx, sel, obj)
+	case model.ViewingHistory:
+		return ec._ViewingHistory(ctx, sel, &obj)
+	case *model.ViewingHistory:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ViewingHistory(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -1960,23 +2640,34 @@ func (ec *executionContext) _Movie(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Movie_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Movie_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "movieUrl":
 			out.Values[i] = ec._Movie_movieUrl(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "scale":
 			out.Values[i] = ec._Movie_scale(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "viewingHistories":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Movie_viewingHistories(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2007,6 +2698,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_noop(ctx, field)
 		case "createMovie":
 			out.Values[i] = ec._Mutation_createMovie(ctx, field)
+		case "recordViewingHistory":
+			out.Values[i] = ec._Mutation_recordViewingHistory(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2106,10 +2799,128 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
+		case "viewer":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_viewer(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "viewers":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_viewers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "viewingHistories":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_viewingHistories(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var viewerImplementors = []string{"Viewer", "Node"}
+
+func (ec *executionContext) _Viewer(ctx context.Context, sel ast.SelectionSet, obj *model.Viewer) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, viewerImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Viewer")
+		case "id":
+			out.Values[i] = ec._Viewer_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Viewer_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "nickname":
+			out.Values[i] = ec._Viewer_nickname(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var viewingHistoryImplementors = []string{"ViewingHistory", "Node"}
+
+func (ec *executionContext) _ViewingHistory(ctx context.Context, sel ast.SelectionSet, obj *model.ViewingHistory) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, viewingHistoryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ViewingHistory")
+		case "id":
+			out.Values[i] = ec._ViewingHistory_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "viewer":
+			out.Values[i] = ec._ViewingHistory_viewer(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "movie":
+			out.Values[i] = ec._ViewingHistory_movie(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._ViewingHistory_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2463,12 +3274,30 @@ func (ec *executionContext) unmarshalNMovieInput2githubᚗcomᚋsky0621ᚋfsᚑm
 	return ec.unmarshalInputMovieInput(ctx, v)
 }
 
+func (ec *executionContext) unmarshalNRecordViewingHistoryInput2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐRecordViewingHistoryInput(ctx context.Context, v interface{}) (model.RecordViewingHistoryInput, error) {
+	return ec.unmarshalInputRecordViewingHistoryInput(ctx, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalString(v)
 }
 
 func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
 	res := graphql.MarshalString(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
+	return graphql.UnmarshalTime(v)
+}
+
+func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel ast.SelectionSet, v time.Time) graphql.Marshaler {
+	res := graphql.MarshalTime(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -2489,6 +3318,108 @@ func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋg
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNViewer2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v model.Viewer) graphql.Marshaler {
+	return ec._Viewer(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNViewer2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Viewer) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNViewer2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewer(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNViewer2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewer(ctx context.Context, sel ast.SelectionSet, v *model.Viewer) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Viewer(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNViewingHistory2githubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistory(ctx context.Context, sel ast.SelectionSet, v model.ViewingHistory) graphql.Marshaler {
+	return ec._ViewingHistory(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNViewingHistory2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ViewingHistory) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNViewingHistory2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistory(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNViewingHistory2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistory(ctx context.Context, sel ast.SelectionSet, v *model.ViewingHistory) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ViewingHistory(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -2825,6 +3756,46 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return ec.marshalOString2string(ctx, sel, *v)
+}
+
+func (ec *executionContext) marshalOViewingHistory2ᚕᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistoryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ViewingHistory) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNViewingHistory2ᚖgithubᚗcomᚋsky0621ᚋfsᚑmngᚑbackendᚋsrcᚋgraphᚋmodelᚐViewingHistory(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
