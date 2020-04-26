@@ -95,7 +95,8 @@ func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) 
 			Viewer: &model.Viewer{
 				ID: record.UserID,
 			},
-			Movie: obj,
+			Movie:     obj,
+			CreatedAt: record.CreatedAt,
 		})
 	}
 	return results, nil

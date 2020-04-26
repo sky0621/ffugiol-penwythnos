@@ -7,6 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sky0621/fs-mng-backend/src/util"
+
+	. "github.com/sky0621/fs-mng-backend/src/models"
+	"golang.org/x/xerrors"
+
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 )
 
@@ -15,5 +20,19 @@ func (r *queryResolver) Viewer(ctx context.Context, id string) (*model.Viewer, e
 }
 
 func (r *queryResolver) Viewers(ctx context.Context) ([]*model.Viewer, error) {
-	panic(fmt.Errorf("not implemented"))
+	records, err := Viewers().All(ctx, r.DB)
+	if err != nil {
+		return nil, xerrors.Errorf("failed to Viewers ALL: %w", err)
+	}
+
+	var results []*model.Viewer
+	for _, record := range records {
+
+		results = append(results, &model.Viewer{
+			ID:       record.ID,
+			Name:     record.Name,
+			Nickname: util.ToNullableString(record.Nickname),
+		})
+	}
+	return results, nil
 }
