@@ -37,14 +37,3 @@ type RecordViewingHistoryInput struct {
 	// 動画ID
 	MovieID string `json:"movieId"`
 }
-
-type Viewer struct {
-	// UUID
-	ID string `json:"id"`
-	// 名前
-	Name string `json:"name"`
-	// ニックネーム
-	Nickname *string `json:"nickname"`
-}
-
-func (Viewer) IsNode() {}
