@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -26,9 +25,9 @@ import (
 	"github.com/volatiletech/sqlboiler/boil"
 )
 
-const defaultPort = "5050"
-
 func main() {
+	e := loadEnv()
+
 	/*
 	 * setup db client
 	 */
@@ -36,7 +35,8 @@ func main() {
 	{
 		var err error
 		// MEMO: ひとまずローカルのコンテナ相手の接続前提なので、べたに書いておく。
-		db, err = sql.Open("postgres", "dbname=localdb user=postgres password=localpass sslmode=disable port=19999")
+		dataSourceName := fmt.Sprintf("dbname=%s user=%s password=%s sslmode=%s port=%s", e.DBName, e.DBUser, e.DBPassword, e.DBSSLMode, e.DBPort)
+		db, err = sql.Open(e.DBDriverName, dataSourceName)
 		if err != nil {
 			panic(err)
 		}
@@ -61,7 +61,7 @@ func main() {
 	/*
 	 * setup GCP client
 	 */
-	gcsClient, err := gcp.NewCloudStorageClient(context.Background(), os.Getenv("BUCKET"))
+	gcsClient, err := gcp.NewCloudStorageClient(context.Background(), e.MovieBucket)
 	if err != nil {
 		panic(err)
 	}
@@ -99,13 +99,8 @@ func main() {
 		router.Handle("/query", srv)
 	}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
-
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	if err := http.ListenAndServe(":"+port, router); err != nil {
+	log.Printf("connect to http://localhost:%s/ for GraphQL playground", e.ServerPort)
+	if err := http.ListenAndServe(":"+e.ServerPort, router); err != nil {
 		fmt.Println(err)
 	}
 }

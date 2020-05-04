@@ -1,0 +1,32 @@
+package main
+
+import (
+	"fmt"
+
+	"github.com/kelseyhightower/envconfig"
+)
+
+type env struct {
+	Env               string `default:"local"`
+	ServerPort        string `split_words:"true" default:"5050"`
+	DBDriverName      string `split_words:"true" default:"postgres"`
+	DBHost            string `split_words:"true" default:"localhost"`
+	DBPort            string `split_words:"true" default:"19999"`
+	DBName            string `split_words:"true" default:"localdb"`
+	DBUser            string `split_words:"true" default:"postgres"`
+	DBPassword        string `split_words:"true" default:"localpass"`
+	DBSSLMode         string `envconfig:"db_ssl_mode" split_words:"true" default:"disable"`
+	MovieBucket       string `split_words:"true" default:"bucket"`
+	Auth0Domain       string `split_words:"true" default:"localhost"`
+	Auth0ClientID     string `split_words:"true" default:"authid"`
+	Auth0ClientSecret string `split_words:"true" default:"authsecret"`
+}
+
+func loadEnv() *env {
+	var e env
+	if err := envconfig.Process("fs", &e); err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return &e
+}
