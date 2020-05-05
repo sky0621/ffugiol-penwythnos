@@ -75,19 +75,12 @@ func main() {
 	{
 		router = chi.NewRouter()
 
-		c := cors.New(cors.Options{
-			AllowedOrigins:   []string{"*"},
-			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-			ExposedHeaders:   []string{"Link"},
-			AllowCredentials: true,
-			MaxAge:           300, // Maximum value not ignored by any of major browsers
-		})
+		c := cors.AllowAll()
 		router.Use(c.Handler)
 
 		// 認証認可チェック用（今はJWTのチェックのみ実装）
-		a := auth.New()
-		router.Use(a.Handler)
+		a := auth.New(e.Auth0Domain, e.Auth0Audience, e.AuthDebug, e.AuthCredentialsOptional)
+		router.Use(a.HandlerFunc())
 
 		router.Handle("/", playground.Handler("fs-mng-backend", "/query"))
 
