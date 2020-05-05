@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sky0621/fs-mng-backend/src/auth"
+
+	"github.com/99designs/gqlgen/graphql/playground"
+
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 
 	"github.com/sky0621/fs-mng-backend/src/gcp"
-
-	"github.com/99designs/gqlgen/graphql/playground"
 
 	"github.com/rs/cors"
 
@@ -73,7 +75,7 @@ func main() {
 	{
 		router = chi.NewRouter()
 
-		cors := cors.New(cors.Options{
+		c := cors.New(cors.Options{
 			AllowedOrigins:   []string{"*"},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
@@ -81,7 +83,13 @@ func main() {
 			AllowCredentials: true,
 			MaxAge:           300, // Maximum value not ignored by any of major browsers
 		})
-		router.Use(cors.Handler)
+		router.Use(c.Handler)
+
+		// 認証認可チェック用（今はJWTのチェックのみ実装）
+		a := auth.New()
+		router.Use(a.Handler)
+
+		router.Handle("/", playground.Handler("fs-mng-backend", "/query"))
 
 		srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 			Resolvers: &graph.Resolver{
@@ -95,7 +103,6 @@ func main() {
 			MaxUploadSize: 100 * mb,
 		})
 
-		router.Handle("/", playground.Handler("fs-mng-backend", "/query"))
 		router.Handle("/query", srv)
 	}
 
