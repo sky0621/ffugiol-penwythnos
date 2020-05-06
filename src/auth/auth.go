@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sky0621/fs-mng-backend/src/util"
+
 	"golang.org/x/xerrors"
 
 	jwtMiddleware "github.com/auth0/go-jwt-middleware"
@@ -100,18 +102,49 @@ func (a *Auth) getPemCert(token *jwt.Token) (string, error) {
 	return cert, nil
 }
 
-type CustomClaims struct {
-	Scope string `json:"scope"`
-	jwt.StandardClaims
+// context格納時のキー
+const authenticatedUserKey = "authenticatedUserKey"
+
+// 認証チェック済みのユーザー情報を保持
+type AuthenticatedUser struct {
+	ID            string
+	EMail         string
+	PermissionSet *util.StringSet
+	// FIXME: 所属する organization の情報を別途保持
 }
 
-const permissionKey = "permissionKey"
+func (u *AuthenticatedUser) HasPermission(funcName string, crud operation, t target) bool {
+	if u == nil || u.PermissionSet == nil {
+		return false
+	}
+	return u.PermissionSet.Contains(fmt.Sprintf("%s:%v:%v", funcName, crud, t))
+}
 
-func (a *Auth) HoldPermissionsHandler(h http.Handler) http.Handler {
+func (u *AuthenticatedUser) HasNoTargetPermission(funcName string, crud operation) bool {
+	if u == nil || u.PermissionSet == nil {
+		return false
+	}
+	return u.PermissionSet.Contains(fmt.Sprintf("%s:%v", funcName, crud))
+}
+
+func (u *AuthenticatedUser) HasReadAllPermission(funcName string) bool {
+	return u.HasPermission(funcName, READ, ALL)
+}
+
+func (u *AuthenticatedUser) HasReadMinePermission(funcName string) bool {
+	return u.HasPermission(funcName, READ, MINE)
+}
+
+func (u *AuthenticatedUser) HasCreatePermission(funcName string) bool {
+	return u.HasNoTargetPermission(funcName, CREATE)
+}
+
+func (a *Auth) HoldPermissionsHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
 		tokenString := authHeaderParts[1]
-		token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+
+		parser := func(token *jwt.Token) (interface{}, error) {
 			cert, err := a.getPemCert(token)
 			if err != nil {
 				return nil, xerrors.Errorf("failed to getPemCert: %w", err)
@@ -121,21 +154,66 @@ func (a *Auth) HoldPermissionsHandler(h http.Handler) http.Handler {
 				return nil, xerrors.Errorf("failed to ParseRSAPublicKeyFromPEM: %w", err)
 			}
 			return result, nil
-		})
+		}
+
+		token, err := jwt.Parse(tokenString, parser)
 		if err != nil {
-			log.Printf("failed to ParseWithClaims: %w", err)
+			log.Printf("failed to ParseWithClaims: %v", err)
+			next.ServeHTTP(w, r)
+			return
+		}
+		if !token.Valid {
+			log.Print("invalid token")
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		claims, ok := token.Claims.(*CustomClaims)
-		if ok && token.Valid {
-			permissions := strings.Split(claims.Scope, " ")
-			for _, permission := range permissions {
-				fmt.Println(permission)
-			}
-			h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), permissionKey, permissions)))
-		} else {
-			h.ServeHTTP(w, r)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			log.Print("not implemented MapClaims")
+			next.ServeHTTP(w, r)
+			return
 		}
+
+		authenticatedUser := &AuthenticatedUser{
+			PermissionSet: util.NewBlankStringSet(),
+		}
+		for k, v := range claims {
+			switch k {
+			case "sub":
+				authenticatedUser.ID = v.(string)
+			case a.audience + "/email":
+				authenticatedUser.EMail = v.(string)
+			case "permissions":
+				if permissionArray, ok := v.([]interface{}); ok {
+					for _, permission := range permissionArray {
+						authenticatedUser.PermissionSet.Add(permission.(string))
+					}
+					break
+				}
+			}
+		}
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), authenticatedUserKey, authenticatedUser)))
 	})
 }
+
+func GetAuthenticatedUser(ctx context.Context) *AuthenticatedUser {
+	u, ok := ctx.Value(authenticatedUserKey).(*AuthenticatedUser)
+	if !ok {
+		return nil
+	}
+	return u
+}
+
+type operation string
+type target string
+
+const (
+	READ   operation = "read"
+	CREATE           = "create"
+	UPDATE           = "update"
+	DELETE           = "delete"
+
+	ALL  target = "all"
+	MINE        = "mine"
+)

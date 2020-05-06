@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sky0621/fs-mng-backend/src/auth"
+
 	"github.com/google/uuid"
 	"github.com/sky0621/fs-mng-backend/src/graph/generated"
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
@@ -18,6 +20,11 @@ import (
 )
 
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (*model.MutationResponse, error) {
+	user := auth.GetAuthenticatedUser(ctx)
+	if !user.HasCreatePermission("content") {
+		return nil, xerrors.New("no permissions")
+	}
+
 	// トランザクションを貼る
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -61,6 +68,11 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 }
 
 func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
+	user := auth.GetAuthenticatedUser(ctx)
+	if !user.HasReadMinePermission("content") {
+		return nil, xerrors.New("no permissions")
+	}
+
 	records, err := Movies().All(ctx, r.DB)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to Movies ALL: %w", err)
