@@ -1,9 +1,12 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"strings"
 
 	"golang.org/x/xerrors"
 
@@ -35,7 +38,7 @@ func New(domain, audience string, debug, credentialsOptional bool) *Auth {
 	return &Auth{domain, audience, debug, credentialsOptional}
 }
 
-func (a *Auth) HandlerFunc() func(next http.Handler) http.Handler {
+func (a *Auth) CheckJWTHandlerFunc() func(next http.Handler) http.Handler {
 	middleware := jwtMiddleware.New(jwtMiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			// Verify 'aud' claim
@@ -95,4 +98,44 @@ func (a *Auth) getPemCert(token *jwt.Token) (string, error) {
 	}
 
 	return cert, nil
+}
+
+type CustomClaims struct {
+	Scope string `json:"scope"`
+	jwt.StandardClaims
+}
+
+const permissionKey = "permissionKey"
+
+func (a *Auth) HoldPermissionsHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeaderParts := strings.Split(r.Header.Get("Authorization"), " ")
+		tokenString := authHeaderParts[1]
+		token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+			cert, err := a.getPemCert(token)
+			if err != nil {
+				return nil, xerrors.Errorf("failed to getPemCert: %w", err)
+			}
+			result, err := jwt.ParseRSAPublicKeyFromPEM([]byte(cert))
+			if err != nil {
+				return nil, xerrors.Errorf("failed to ParseRSAPublicKeyFromPEM: %w", err)
+			}
+			return result, nil
+		})
+		if err != nil {
+			log.Printf("failed to ParseWithClaims: %w", err)
+			return
+		}
+
+		claims, ok := token.Claims.(*CustomClaims)
+		if ok && token.Valid {
+			permissions := strings.Split(claims.Scope, " ")
+			for _, permission := range permissions {
+				fmt.Println(permission)
+			}
+			h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), permissionKey, permissions)))
+		} else {
+			h.ServeHTTP(w, r)
+		}
+	})
 }

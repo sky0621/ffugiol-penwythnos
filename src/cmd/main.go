@@ -80,7 +80,8 @@ func main() {
 
 		// 認証認可チェック用（今はJWTのチェックのみ実装）
 		a := auth.New(e.Auth0Domain, e.Auth0Audience, e.AuthDebug, e.AuthCredentialsOptional)
-		router.Use(a.HandlerFunc())
+		router.Use(a.CheckJWTHandlerFunc())
+		router.Use(a.HoldPermissionsHandler)
 
 		router.Handle("/", playground.Handler("fs-mng-backend", "/query"))
 
