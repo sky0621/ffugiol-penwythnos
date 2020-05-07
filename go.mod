@@ -25,5 +25,6 @@ require (
 	github.com/volatiletech/sqlboiler v3.7.0+incompatible
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
+	gopkg.in/auth0.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.2.8 // indirect
 )

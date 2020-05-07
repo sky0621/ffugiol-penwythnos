@@ -63,9 +63,25 @@ func main() {
 	/*
 	 * setup GCP client
 	 */
-	gcsClient, err := gcp.NewCloudStorageClient(context.Background(), e.MovieBucket)
-	if err != nil {
-		panic(err)
+	var gcsClient gcp.CloudStorageClient
+	{
+		var err error
+		gcsClient, err = gcp.NewCloudStorageClient(context.Background(), e.MovieBucket)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	/*
+	 * setup Auth0 client
+	 */
+	var auth0Client auth.Auth0Client
+	{
+		tm, err := time.ParseDuration(e.Auth0Timeout)
+		if err != nil {
+			panic(err)
+		}
+		auth0Client = auth.NewAuth0Client(e.Auth0Domain, e.Auth0ClientID, e.Auth0ClientSecret, tm, e.AuthDebug)
 	}
 
 	/*
@@ -87,8 +103,9 @@ func main() {
 
 		srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 			Resolvers: &graph.Resolver{
-				DB:        db,
-				GCSClient: gcsClient,
+				DB:          db,
+				GCSClient:   gcsClient,
+				Auth0Client: auth0Client,
 			},
 		}))
 		var mb int64 = 1 << 20
