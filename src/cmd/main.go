@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sky0621/fs-mng-backend/src/dataloader"
+
 	"github.com/sky0621/fs-mng-backend/src/auth"
 
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -90,35 +92,46 @@ func main() {
 	var router *chi.Mux
 	{
 		router = chi.NewRouter()
+		router.Group(func(r chi.Router) {
+			// CORS
+			r.Use(cors.AllowAll().Handler)
 
-		c := cors.AllowAll()
-		router.Use(c.Handler)
+			// 認証認可チェック用（今はJWTのチェックのみ実装）
+			a := auth.New(e.Auth0Domain, e.Auth0Audience, e.AuthDebug, e.AuthCredentialsOptional)
+			r.Use(a.CheckJWTHandlerFunc())
+			r.Use(a.HoldPermissionsHandler)
 
-		// 認証認可チェック用（今はJWTのチェックのみ実装）
-		a := auth.New(e.Auth0Domain, e.Auth0Audience, e.AuthDebug, e.AuthCredentialsOptional)
-		router.Use(a.CheckJWTHandlerFunc())
-		router.Use(a.HoldPermissionsHandler)
-
-		router.Handle("/", playground.Handler("fs-mng-backend", "/query"))
-
-		srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
-			Resolvers: &graph.Resolver{
+			// GraphQLリゾルバー
+			resolver := &graph.Resolver{
 				DB:          db,
 				GCSClient:   gcsClient,
 				Auth0Client: auth0Client,
-			},
-		}))
-		var mb int64 = 1 << 20
-		srv.AddTransport(transport.MultipartForm{
-			MaxMemory:     128 * mb,
-			MaxUploadSize: 100 * mb,
-		})
+			}
 
-		router.Handle("/query", srv)
+			// GraphQLエンドポイント（DataLoaderでラップ）
+			r.Handle("/query", dataloader.Middleware(resolver, graphQlServer(resolver)))
+
+			// GraphQLドキュメント
+			r.Handle("/", playground.Handler("fs-mng-backend", "/query"))
+		})
 	}
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", e.ServerPort)
 	if err := http.ListenAndServe(":"+e.ServerPort, router); err != nil {
 		fmt.Println(err)
 	}
+}
+
+func graphQlServer(resolver *graph.Resolver) *handler.Server {
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+		Resolvers: resolver,
+	}))
+
+	var mb int64 = 1 << 20
+	srv.AddTransport(transport.MultipartForm{
+		MaxMemory:     128 * mb,
+		MaxUploadSize: 100 * mb,
+	})
+
+	return srv
 }
