@@ -22,7 +22,7 @@ func TestLoadEnv(t *testing.T) {
 				DBDriverName: "postgres",
 				DBHost:       "localhost",
 				DBPort:       "19999",
-				DBName:       "localdb",
+				DBName:       "backenddb",
 				DBUser:       "postgres",
 				DBPassword:   "localpass",
 				DBSSLMode:    "disable",

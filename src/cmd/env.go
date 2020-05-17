@@ -13,7 +13,7 @@ type env struct {
 	DBDriverName string `split_words:"true" default:"postgres"`
 	DBHost       string `split_words:"true" default:"localhost"`
 	DBPort       string `split_words:"true" default:"19999"`
-	DBName       string `split_words:"true" default:"localdb"`
+	DBName       string `split_words:"true" default:"backenddb"`
 	DBUser       string `split_words:"true" default:"postgres"`
 	DBPassword   string `split_words:"true" default:"localpass"`
 	DBSSLMode    string `envconfig:"db_ssl_mode" split_words:"true" default:"disable"`

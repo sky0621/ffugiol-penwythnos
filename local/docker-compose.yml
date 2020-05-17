@@ -11,7 +11,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=localpass
       - PGPASSWORD=localpass
-      - POSTGRES_DB=localdb
+      - POSTGRES_DB=backenddb
       - DATABASE_HOST=localhost
     volumes:
       - ./docker/db/init:/docker-entrypoint-initdb.d/
