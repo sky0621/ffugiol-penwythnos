@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sky0621/fs-mng-backend/src/dataloader"
-
 	"github.com/sky0621/fs-mng-backend/src/auth"
 
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -109,7 +107,7 @@ func main() {
 			}
 
 			// GraphQLエンドポイント（DataLoaderでラップ）
-			r.Handle("/query", dataloader.Middleware(resolver, graphQlServer(resolver)))
+			r.Handle("/query", graph.DataLoaderMiddleware(resolver, graphQlServer(resolver)))
 
 			// GraphQLドキュメント
 			r.Handle("/", playground.Handler("fs-mng-backend", "/query"))

@@ -10,7 +10,7 @@ import (
 // ViewingHistoryLoaderConfig captures the config to create a new ViewingHistoryLoader
 type ViewingHistoryLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []int) ([][]*ViewingHistory, []error)
+	Fetch func(keys []string) ([][]*ViewingHistory, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -31,7 +31,7 @@ func NewViewingHistoryLoader(config ViewingHistoryLoaderConfig) *ViewingHistoryL
 // ViewingHistoryLoader batches and caches requests
 type ViewingHistoryLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []int) ([][]*ViewingHistory, []error)
+	fetch func(keys []string) ([][]*ViewingHistory, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -42,7 +42,7 @@ type ViewingHistoryLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[int][]*ViewingHistory
+	cache map[string][]*ViewingHistory
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -53,7 +53,7 @@ type ViewingHistoryLoader struct {
 }
 
 type viewingHistoryLoaderBatch struct {
-	keys    []int
+	keys    []string
 	data    [][]*ViewingHistory
 	error   []error
 	closing bool
@@ -61,14 +61,14 @@ type viewingHistoryLoaderBatch struct {
 }
 
 // Load a ViewingHistory by key, batching and caching will be applied automatically
-func (l *ViewingHistoryLoader) Load(key int) ([]*ViewingHistory, error) {
+func (l *ViewingHistoryLoader) Load(key string) ([]*ViewingHistory, error) {
 	return l.LoadThunk(key)()
 }
 
 // LoadThunk returns a function that when called will block waiting for a ViewingHistory.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *ViewingHistoryLoader) LoadThunk(key int) func() ([]*ViewingHistory, error) {
+func (l *ViewingHistoryLoader) LoadThunk(key string) func() ([]*ViewingHistory, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
@@ -111,7 +111,7 @@ func (l *ViewingHistoryLoader) LoadThunk(key int) func() ([]*ViewingHistory, err
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *ViewingHistoryLoader) LoadAll(keys []int) ([][]*ViewingHistory, []error) {
+func (l *ViewingHistoryLoader) LoadAll(keys []string) ([][]*ViewingHistory, []error) {
 	results := make([]func() ([]*ViewingHistory, error), len(keys))
 
 	for i, key := range keys {
@@ -129,7 +129,7 @@ func (l *ViewingHistoryLoader) LoadAll(keys []int) ([][]*ViewingHistory, []error
 // LoadAllThunk returns a function that when called will block waiting for a ViewingHistorys.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *ViewingHistoryLoader) LoadAllThunk(keys []int) func() ([][]*ViewingHistory, []error) {
+func (l *ViewingHistoryLoader) LoadAllThunk(keys []string) func() ([][]*ViewingHistory, []error) {
 	results := make([]func() ([]*ViewingHistory, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
@@ -147,7 +147,7 @@ func (l *ViewingHistoryLoader) LoadAllThunk(keys []int) func() ([][]*ViewingHist
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *ViewingHistoryLoader) Prime(key int, value []*ViewingHistory) bool {
+func (l *ViewingHistoryLoader) Prime(key string, value []*ViewingHistory) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -162,22 +162,22 @@ func (l *ViewingHistoryLoader) Prime(key int, value []*ViewingHistory) bool {
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *ViewingHistoryLoader) Clear(key int) {
+func (l *ViewingHistoryLoader) Clear(key string) {
 	l.mu.Lock()
 	delete(l.cache, key)
 	l.mu.Unlock()
 }
 
-func (l *ViewingHistoryLoader) unsafeSet(key int, value []*ViewingHistory) {
+func (l *ViewingHistoryLoader) unsafeSet(key string, value []*ViewingHistory) {
 	if l.cache == nil {
-		l.cache = map[int][]*ViewingHistory{}
+		l.cache = map[string][]*ViewingHistory{}
 	}
 	l.cache[key] = value
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
 // it will add the key to the batch
-func (b *viewingHistoryLoaderBatch) keyIndex(l *ViewingHistoryLoader, key int) int {
+func (b *viewingHistoryLoaderBatch) keyIndex(l *ViewingHistoryLoader, key string) int {
 	for i, existingKey := range b.keys {
 		if key == existingKey {
 			return i

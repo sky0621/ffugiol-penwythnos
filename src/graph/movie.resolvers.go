@@ -95,9 +95,9 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 }
 
 func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) ([]*model.ViewingHistory, error) {
-	records, err := ViewingHistories(ViewingHistoryWhere.MovieID.EQ(obj.ID)).All(ctx, r.DB)
+	records, err := For(ctx).ViewingHistoriesByMovieID.Load(obj.ID)
 	if err != nil {
-		return nil, xerrors.Errorf("failed to ViewingHistories ALL [movie_id:%s]: %w", obj.ID, err)
+		return nil, xerrors.Errorf("failed to ViewingHistoriesByMovieID [movie_id:%s]: %w", obj.ID, err)
 	}
 
 	var results []*model.ViewingHistory
@@ -105,7 +105,7 @@ func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) 
 		results = append(results, &model.ViewingHistory{
 			ID: record.ID,
 			Viewer: &model.Viewer{
-				ID: record.UserID,
+				ID: record.Viewer.ID,
 			},
 			Movie:     obj,
 			CreatedAt: record.CreatedAt,
