@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,7 +23,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/sky0621/fs-mng-backend/src/graph"
 	"github.com/sky0621/fs-mng-backend/src/graph/generated"
-	"github.com/volatiletech/sqlboiler/boil"
 )
 
 func main() {
@@ -33,32 +31,12 @@ func main() {
 	/*
 	 * setup db client
 	 */
-	var db *sql.DB
-	{
-		var err error
-		// MEMO: ひとまずローカルのコンテナ相手の接続前提なので、べたに書いておく。
-		dataSourceName := fmt.Sprintf("dbname=%s user=%s password=%s sslmode=%s port=%s", e.DBName, e.DBUser, e.DBPassword, e.DBSSLMode, e.DBPort)
-		db, err = sql.Open(e.DBDriverName, dataSourceName)
-		if err != nil {
-			panic(err)
+	db, closeDBFunc := newDB(e)
+	defer func() {
+		if err := closeDBFunc(); err != nil {
+			log.Fatal(err)
 		}
-		defer func() {
-			if db != nil {
-				if err := db.Close(); err != nil {
-					panic(err)
-				}
-			}
-		}()
-
-		boil.DebugMode = true
-
-		var loc *time.Location
-		loc, err = time.LoadLocation("Asia/Tokyo")
-		if err != nil {
-			panic(err)
-		}
-		boil.SetLocation(loc)
-	}
+	}()
 
 	/*
 	 * setup GCP client
