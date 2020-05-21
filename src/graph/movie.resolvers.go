@@ -6,7 +6,10 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
+
+	"github.com/sky0621/fs-mng-backend/src/gcp"
 
 	"github.com/sky0621/fs-mng-backend/src/auth"
 
@@ -23,58 +26,71 @@ import (
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (*model.MutationResponse, error) {
 	user := auth.GetAuthenticatedUser(ctx)
 	if !user.HasCreatePermission("content") {
-		return nil, xerrors.New("no permissions")
+		err := xerrors.New("no permissions")
+		log.Print(err)
+		return nil, err
 	}
 
 	// トランザクションを貼る
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, xerrors.Errorf("failed to BeginTx: %w", err)
+		log.Print(xerrors.Unwrap(err))
+		return nil, err
 	}
 	defer func() {
 		if tx != nil {
 			// コミット発行されてなければ必ずロールバックされる
 			if err := tx.Rollback(); err != nil {
-				fmt.Println(err)
+				log.Print(xerrors.Unwrap(err))
 			}
 		}
 	}()
 
 	// DB登録
+	id := uuid.New().String()
 	m := Movie{
-		ID:       uuid.New().String(),
+		ID:       id,
 		Name:     input.Name,
 		Filename: input.MovieFile.Filename,
 		Scale:    input.Scale,
 	}
 	if err := m.Insert(ctx, r.DB, boil.Infer()); err != nil {
+		log.Print(xerrors.Unwrap(err))
 		// トランザクションロールバックされる
-		return nil, xerrors.Errorf("failed to Insert: %w", err)
+		return nil, err
 	}
 
 	// ファイルをCloud Storageにアップ
 	if err := r.GCSClient.ExecUploadObject(ctx, input.MovieFile.Filename, input.MovieFile.File); err != nil {
+		log.Print(xerrors.Unwrap(err))
 		// トランザクションロールバックされる
-		return nil, xerrors.Errorf("failed to GCSClient.ExecUploadObject: %w", err)
+		return nil, err
 	}
 
+	metadata := map[string]string{
+		"facility-id": "fid:0001",
+	}
 	jsonFormat := `
 		{
+			"id": "%s",
 			"name": "%s",
 			"filename": "%s",
 			"scale": %d
 		}
 	`
+	bodyJSON := fmt.Sprintf(jsonFormat, id, input.Name, input.MovieFile.Filename, input.Scale)
 
 	// イベント発生を通知
-	if err := r.PubSubClient.SendCreateMovieTopic(ctx, "fid:0001", fmt.Sprintf(jsonFormat, input.Name, input.MovieFile.Filename, input.Scale)); err != nil {
+	if err := r.PubSubClient.SendTopic(ctx, gcp.CreateMovieTopic, metadata, bodyJSON); err != nil {
+		log.Print(xerrors.Unwrap(err))
 		// トランザクションロールバックされる
-		return nil, xerrors.Errorf("failed to Send Topic: %w", err)
+		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
+		log.Print(xerrors.Unwrap(err))
 		// トランザクションロールバックされる
-		return nil, xerrors.Errorf("failed to Commit: %w", err)
+		return nil, err
 	}
 
 	return &model.MutationResponse{
@@ -85,19 +101,23 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 	user := auth.GetAuthenticatedUser(ctx)
 	if !user.HasReadMinePermission("content") {
-		return nil, xerrors.New("no permissions")
+		err := xerrors.New("no permissions")
+		log.Print(err)
+		return nil, err
 	}
 
 	records, err := Movies().All(ctx, r.DB)
 	if err != nil {
-		return nil, xerrors.Errorf("failed to Movies ALL: %w", err)
+		log.Print(xerrors.Unwrap(err))
+		return nil, err
 	}
 
 	var results []*model.Movie
 	for _, record := range records {
 		url, err := r.GCSClient.ExecSignedURL(record.Filename, util.GetExpire(30*time.Second))
 		if err != nil {
-			return nil, xerrors.Errorf("failed to GCSClient.ExecSignedURL: %w", err)
+			log.Print(xerrors.Unwrap(err))
+			return nil, err
 		}
 		results = append(results, &model.Movie{
 			ID:       record.ID,
@@ -112,7 +132,8 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) ([]*model.ViewingHistory, error) {
 	records, err := For(ctx).ViewingHistoriesByMovieID.Load(obj.ID)
 	if err != nil {
-		return nil, xerrors.Errorf("failed to ViewingHistoriesByMovieID [movie_id:%s]: %w", obj.ID, err)
+		log.Print(xerrors.Unwrap(err))
+		return nil, err
 	}
 
 	var results []*model.ViewingHistory

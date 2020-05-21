@@ -18,7 +18,7 @@ const (
 )
 
 type PubSubClient interface {
-	SendCreateMovieTopic(ctx context.Context, facilityID, bodyJSON string) error
+	SendTopic(ctx context.Context, topic Topic, metadata map[string]string, bodyJSON string) error
 }
 
 type pubSubClient struct {
@@ -33,24 +33,22 @@ func NewPubSubClient(createMovieTopic string) PubSubClient {
 	}
 }
 
-func (c *pubSubClient) SendCreateMovieTopic(ctx context.Context, facilityID, bodyJSON string) (e error) {
-	topic, err := pubsub.OpenTopic(ctx, fmt.Sprintf("gcppubsub://%s", c.topicList[CreateMovieTopic]))
+func (c *pubSubClient) SendTopic(ctx context.Context, topic Topic, metadata map[string]string, bodyJSON string) (e error) {
+	t, err := pubsub.OpenTopic(ctx, fmt.Sprintf("gcppubsub://%s", c.topicList[topic]))
 	if err != nil {
 		return xerrors.Errorf("failed to Open Topic: %w", err)
 	}
 	defer func() {
-		if topic != nil {
-			if err := topic.Shutdown(ctx); err != nil {
+		if t != nil {
+			if err := t.Shutdown(ctx); err != nil {
 				e = xerrors.Errorf("failed to Shutdown Topic: %w", err)
 			}
 		}
 	}()
 
-	err = topic.Send(ctx, &pubsub.Message{
-		Metadata: map[string]string{
-			"facility-id": facilityID,
-		},
-		Body: []byte(bodyJSON),
+	err = t.Send(ctx, &pubsub.Message{
+		Metadata: metadata,
+		Body:     []byte(bodyJSON),
 	})
 	if err != nil {
 		return xerrors.Errorf("failed to Send Topic: %w", err)

@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/sky0621/fs-mng-backend/src/util"
 
@@ -22,7 +23,8 @@ func (r *queryResolver) Viewer(ctx context.Context, id string) (*model.Viewer, e
 func (r *queryResolver) Viewers(ctx context.Context) ([]*model.Viewer, error) {
 	records, err := Viewers().All(ctx, r.DB)
 	if err != nil {
-		return nil, xerrors.Errorf("failed to Viewers ALL: %w", err)
+		log.Print(xerrors.Unwrap(err))
+		return nil, err
 	}
 
 	var results []*model.Viewer

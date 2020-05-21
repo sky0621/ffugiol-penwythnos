@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
 
 	. "github.com/sky0621/fs-mng-backend/src/models"
 	"github.com/volatiletech/sqlboiler/queries/qm"
@@ -28,7 +29,8 @@ func (r *queryResolver) ViewingHistories(ctx context.Context, userID *string, mo
 	}
 	records, err := ViewingHistories(mods...).All(ctx, r.DB)
 	if err != nil {
-		return nil, xerrors.Errorf("failed to ViewingHistories ALL [user_id:%v][movie_id:%v]: %w", userID, movieID, err)
+		log.Print(xerrors.Unwrap(err))
+		return nil, err
 	}
 
 	var results []*model.ViewingHistory
