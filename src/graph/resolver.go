@@ -13,7 +13,8 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	DB          *sql.DB
-	GCSClient   gcp.CloudStorageClient
-	Auth0Client auth.Auth0Client
+	DB           *sql.DB
+	GCSClient    gcp.CloudStorageClient
+	PubSubClient gcp.PubSubClient
+	Auth0Client  auth.Auth0Client
 }

@@ -49,6 +49,10 @@ func main() {
 			panic(err)
 		}
 	}
+	var pubSubClient gcp.PubSubClient
+	{
+		pubSubClient = gcp.NewPubSubClient(e.CreateMovieTopic)
+	}
 
 	/*
 	 * setup Auth0 client
@@ -79,9 +83,10 @@ func main() {
 
 			// GraphQLリゾルバー
 			resolver := &graph.Resolver{
-				DB:          db,
-				GCSClient:   gcsClient,
-				Auth0Client: auth0Client,
+				DB:           db,
+				GCSClient:    gcsClient,
+				PubSubClient: pubSubClient,
+				Auth0Client:  auth0Client,
 			}
 
 			// GraphQLエンドポイント（DataLoaderでラップ）

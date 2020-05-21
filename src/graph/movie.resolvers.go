@@ -16,6 +16,7 @@ import (
 	. "github.com/sky0621/fs-mng-backend/src/models"
 	"github.com/sky0621/fs-mng-backend/src/util"
 	"github.com/volatiletech/sqlboiler/boil"
+	_ "gocloud.dev/pubsub/gcppubsub"
 	"golang.org/x/xerrors"
 )
 
@@ -52,9 +53,23 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 	}
 
 	// ファイルをCloud Storageにアップ
-	if err := r.GCSClient.ExecUploadObject(input.MovieFile.Filename, input.MovieFile.File); err != nil {
+	if err := r.GCSClient.ExecUploadObject(ctx, input.MovieFile.Filename, input.MovieFile.File); err != nil {
 		// トランザクションロールバックされる
 		return nil, xerrors.Errorf("failed to GCSClient.ExecUploadObject: %w", err)
+	}
+
+	jsonFormat := `
+		{
+			"name": "%s",
+			"filename": "%s",
+			"scale": %d
+		}
+	`
+
+	// イベント発生を通知
+	if err := r.PubSubClient.SendCreateMovieTopic(ctx, "fid:0001", fmt.Sprintf(jsonFormat, input.Name, input.MovieFile.Filename, input.Scale)); err != nil {
+		// トランザクションロールバックされる
+		return nil, xerrors.Errorf("failed to Send Topic: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

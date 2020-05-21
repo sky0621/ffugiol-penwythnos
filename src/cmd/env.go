@@ -19,6 +19,8 @@ type env struct {
 	DBSSLMode    string `envconfig:"db_ssl_mode" split_words:"true" default:"disable"`
 	// GCS関連
 	MovieBucket string `split_words:"true" default:"bucket"`
+	// PubSub関連
+	CreateMovieTopic string `split_words:"true" default:"create_movie_topic"`
 	// Auth関連
 	AuthDebug               bool   `split_words:"true" default:"true"`
 	AuthCredentialsOptional bool   `split_words:"true" default:"true"`

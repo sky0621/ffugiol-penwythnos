@@ -28,6 +28,8 @@ func TestLoadEnv(t *testing.T) {
 				DBSSLMode:    "disable",
 				// GCS関連
 				MovieBucket: "bucket",
+				// PubSub関連
+				CreateMovieTopic: "create_movie_topic",
 				// Auth関連
 				AuthDebug:               true,
 				AuthCredentialsOptional: true,
@@ -53,6 +55,8 @@ func TestLoadEnv(t *testing.T) {
 				"FS_DB_SSL_MODE":    "true",
 				// GCS関連
 				"FS_MOVIE_BUCKET": "bucket",
+				// PubSub関連
+				"FS_CREATE_MOVIE_TOPIC": "test_topic",
 				// Auth関連
 				"FS_AUTH_DEBUG":                "false",
 				"FS_AUTH_CREDENTIALS_OPTIONAL": "false",
@@ -75,6 +79,8 @@ func TestLoadEnv(t *testing.T) {
 				DBSSLMode:    "true",
 				// GCS関連
 				MovieBucket: "bucket",
+				// PubSub関連
+				CreateMovieTopic: "test_topic",
 				// Auth関連
 				AuthDebug:               false,
 				AuthCredentialsOptional: false,

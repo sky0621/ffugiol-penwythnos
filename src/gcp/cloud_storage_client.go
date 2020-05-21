@@ -13,7 +13,7 @@ import (
 
 type CloudStorageClient interface {
 	ExecSignedURL(object string, expire time.Time) (url string, err error)
-	ExecUploadObject(object string, reader io.Reader) error
+	ExecUploadObject(ctx context.Context, object string, reader io.Reader) error
 }
 
 type cloudStorageClient struct {
@@ -58,7 +58,7 @@ func NewCloudStorageClient(ctx context.Context, bucket string) (CloudStorageClie
 			}
 			return url, nil
 		},
-		uploadObjectFunc: func(bucket, object string, reader io.Reader) error {
+		uploadObjectFunc: func(ctx context.Context, bucket, object string, reader io.Reader) error {
 			client, err := storage.NewClient(ctx)
 			if err != nil {
 				return xerrors.Errorf("failed to storage.NewClient: %w", err)
@@ -87,12 +87,12 @@ func (c *cloudStorageClient) ExecSignedURL(object string, expire time.Time) (str
 	return c.signedURLFunc(c.bucket, object, expire)
 }
 
-func (c *cloudStorageClient) ExecUploadObject(object string, reader io.Reader) error {
+func (c *cloudStorageClient) ExecUploadObject(ctx context.Context, object string, reader io.Reader) error {
 	if c == nil || object == "" || reader == nil {
 		return xerrors.Errorf("does not meet the preconditions: [object:%s]", object)
 	}
-	return c.uploadObjectFunc(c.bucket, object, reader)
+	return c.uploadObjectFunc(ctx, c.bucket, object, reader)
 }
 
 type SignedURLFunc func(bucket, object string, expire time.Time) (url string, err error)
-type UploadObjectFunc func(bucket, object string, reader io.Reader) error
+type UploadObjectFunc func(ctx context.Context, bucket, object string, reader io.Reader) error
