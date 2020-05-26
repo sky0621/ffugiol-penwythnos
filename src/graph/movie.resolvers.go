@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -20,13 +21,12 @@ import (
 	"github.com/sky0621/fs-mng-backend/src/util"
 	"github.com/volatiletech/sqlboiler/boil"
 	_ "gocloud.dev/pubsub/gcppubsub"
-	"golang.org/x/xerrors"
 )
 
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (*model.MutationResponse, error) {
 	user := auth.GetAuthenticatedUser(ctx)
 	if !user.HasCreatePermission("content") {
-		err := xerrors.New("no permissions")
+		err := errors.New("no permissions")
 		log.Print(err)
 		return nil, err
 	}
@@ -34,14 +34,14 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 	// トランザクションを貼る
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
-		log.Print(xerrors.Unwrap(err))
+		log.Printf("%+v", err)
 		return nil, err
 	}
 	defer func() {
 		if tx != nil {
 			// コミット発行されてなければ必ずロールバックされる
 			if err := tx.Rollback(); err != nil {
-				log.Print(xerrors.Unwrap(err))
+				log.Printf("%+v", err)
 			}
 		}
 	}()
@@ -55,14 +55,14 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 		Scale:    input.Scale,
 	}
 	if err := m.Insert(ctx, r.DB, boil.Infer()); err != nil {
-		log.Print(xerrors.Unwrap(err))
+		log.Printf("%+v", err)
 		// トランザクションロールバックされる
 		return nil, err
 	}
 
 	// ファイルをCloud Storageにアップ
 	if err := r.GCSClient.ExecUploadObject(ctx, input.MovieFile.Filename, input.MovieFile.File); err != nil {
-		log.Print(xerrors.Unwrap(err))
+		log.Printf("%+v", err)
 		// トランザクションロールバックされる
 		return nil, err
 	}
@@ -82,13 +82,13 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 
 	// イベント発生を通知
 	if err := r.PubSubClient.SendTopic(ctx, gcp.CreateMovieTopic, metadata, bodyJSON); err != nil {
-		log.Print(xerrors.Unwrap(err))
+		log.Printf("%+v", err)
 		// トランザクションロールバックされる
 		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Print(xerrors.Unwrap(err))
+		log.Printf("%+v", err)
 		// トランザクションロールバックされる
 		return nil, err
 	}
@@ -101,14 +101,14 @@ func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInp
 func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 	user := auth.GetAuthenticatedUser(ctx)
 	if !user.HasReadMinePermission("content") {
-		err := xerrors.New("no permissions")
+		err := errors.New("no permissions")
 		log.Print(err)
 		return nil, err
 	}
 
 	records, err := Movies().All(ctx, r.DB)
 	if err != nil {
-		log.Print(xerrors.Unwrap(err))
+		log.Printf("%+v", err)
 		return nil, err
 	}
 
@@ -116,7 +116,7 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 	for _, record := range records {
 		url, err := r.GCSClient.ExecSignedURL(record.Filename, util.GetExpire(30*time.Second))
 		if err != nil {
-			log.Print(xerrors.Unwrap(err))
+			log.Printf("%+v", err)
 			return nil, err
 		}
 		results = append(results, &model.Movie{
@@ -132,7 +132,7 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) ([]*model.ViewingHistory, error) {
 	records, err := For(ctx).ViewingHistoriesByMovieID.Load(obj.ID)
 	if err != nil {
-		log.Print(xerrors.Unwrap(err))
+		log.Printf("%+v", err)
 		return nil, err
 	}
 
