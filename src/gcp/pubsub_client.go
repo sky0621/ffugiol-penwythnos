@@ -3,11 +3,15 @@ package gcp
 import (
 	"context"
 	"fmt"
+	"log"
+
+	"github.com/sky0621/fs-mng-backend/src/util"
 
 	"golang.org/x/xerrors"
 
 	"gocloud.dev/pubsub"
 	_ "gocloud.dev/pubsub/gcppubsub"
+	_ "gocloud.dev/pubsub/mempubsub"
 )
 
 type Topic int
@@ -22,11 +26,15 @@ type PubSubClient interface {
 }
 
 type pubSubClient struct {
+	env       string
+	projectID string
 	topicList map[Topic]string
 }
 
-func NewPubSubClient(createMovieTopic string) PubSubClient {
+func NewPubSubClient(env, projectID, createMovieTopic string) PubSubClient {
 	return &pubSubClient{
+		env:       env,
+		projectID: projectID,
 		topicList: map[Topic]string{
 			CreateMovieTopic: createMovieTopic,
 		},
@@ -34,7 +42,15 @@ func NewPubSubClient(createMovieTopic string) PubSubClient {
 }
 
 func (c *pubSubClient) SendTopic(ctx context.Context, topic Topic, metadata map[string]string, bodyJSON string) (e error) {
-	t, err := pubsub.OpenTopic(ctx, fmt.Sprintf("gcppubsub://%s", c.topicList[topic]))
+	var targetTopic string
+	{
+		if util.IsLocal(c.env) {
+			targetTopic = fmt.Sprintf("mem://%s", c.topicList[topic])
+		} else {
+			targetTopic = fmt.Sprintf("gcppubsub://projects/%s/topics/%s", c.projectID, c.topicList[topic])
+		}
+	}
+	t, err := pubsub.OpenTopic(ctx, targetTopic)
 	if err != nil {
 		return xerrors.Errorf("failed to Open Topic: %w", err)
 	}
@@ -53,5 +69,33 @@ func (c *pubSubClient) SendTopic(ctx context.Context, topic Topic, metadata map[
 	if err != nil {
 		return xerrors.Errorf("failed to Send Topic: %w", err)
 	}
+
+	if util.IsLocal(c.env) {
+		sub, err := pubsub.OpenSubscription(ctx, targetTopic)
+		if err != nil {
+			log.Printf("%+v\n", err)
+			return err
+		}
+		defer func() {
+			if sub != nil {
+				if err := sub.Shutdown(ctx); err != nil {
+					log.Printf("%+v\n", err)
+					e = err
+				}
+			}
+		}()
+		msg, err := sub.Receive(ctx)
+		if err != nil {
+			log.Printf("%+v\n", err)
+			return err
+		}
+		if msg != nil {
+			log.Printf("metadata: %#v", msg.Metadata)
+			log.Printf("body: %s", string(msg.Body))
+
+			msg.Ack()
+		}
+	}
+
 	return nil
 }

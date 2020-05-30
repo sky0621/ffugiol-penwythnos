@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -26,6 +25,12 @@ import (
 )
 
 func main() {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("panic recovered: %v", r)
+		}
+	}()
+
 	e := loadEnv()
 
 	/*
@@ -41,17 +46,27 @@ func main() {
 	/*
 	 * setup GCP client
 	 */
+	var projectID string
+	{
+		var err error
+		projectID, err = gcp.GetProjectID()
+		if err != nil {
+			log.Printf("%+v\n", err)
+			return
+		}
+	}
 	var gcsClient gcp.CloudStorageClient
 	{
 		var err error
 		gcsClient, err = gcp.NewCloudStorageClient(context.Background(), e.MovieBucket)
 		if err != nil {
-			panic(err)
+			log.Printf("%+v\n", err)
+			return
 		}
 	}
 	var pubSubClient gcp.PubSubClient
 	{
-		pubSubClient = gcp.NewPubSubClient(e.CreateMovieTopic)
+		pubSubClient = gcp.NewPubSubClient(e.Env, projectID, e.CreateMovieTopic)
 	}
 
 	/*
@@ -61,7 +76,8 @@ func main() {
 	{
 		tm, err := time.ParseDuration(e.Auth0Timeout)
 		if err != nil {
-			panic(err)
+			log.Printf("%+v\n", err)
+			return
 		}
 		auth0Client = auth.NewAuth0Client(e.Auth0Domain, e.Auth0ClientID, e.Auth0ClientSecret, tm, e.AuthDebug)
 	}
@@ -99,7 +115,8 @@ func main() {
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", e.ServerPort)
 	if err := http.ListenAndServe(":"+e.ServerPort, router); err != nil {
-		fmt.Println(err)
+		log.Printf("%+v\n", err)
+		return
 	}
 }
 
