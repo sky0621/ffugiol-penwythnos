@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sky0621/fs-mng-backend/src/util"
+
 	"github.com/sky0621/fs-mng-backend/src/auth"
 
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -27,9 +29,12 @@ import (
 func main() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("panic recovered: %v", r)
+			log.Fatalf("panic recovered: %v", r)
 		}
 	}()
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancelFunc()
 
 	e := loadEnv()
 
@@ -58,7 +63,7 @@ func main() {
 	var gcsClient gcp.CloudStorageClient
 	{
 		var err error
-		gcsClient, err = gcp.NewCloudStorageClient(context.Background(), e.MovieBucket)
+		gcsClient, err = gcp.NewCloudStorageClient(ctx, e.MovieBucket)
 		if err != nil {
 			log.Printf("%+v\n", err)
 			return
@@ -66,7 +71,24 @@ func main() {
 	}
 	var pubSubClient gcp.PubSubClient
 	{
-		pubSubClient = gcp.NewPubSubClient(e.Env, projectID, e.CreateMovieTopic)
+		if util.IsLocal(e.Env) {
+			memTopic, memSubscription := gcp.CreateMemPubSubSet()
+			defer func() {
+				if memTopic != nil {
+					if err := memTopic.Shutdown(ctx); err != nil {
+						log.Printf("%+v\n", err)
+					}
+					if memSubscription != nil {
+						if err := memSubscription.Shutdown(ctx); err != nil {
+							log.Printf("%+v\n", err)
+						}
+					}
+				}
+			}()
+			pubSubClient = gcp.NewPubSubLocalClient(e.Env, projectID, e.CreateMovieTopic, memTopic, memSubscription)
+		} else {
+			pubSubClient = gcp.NewPubSubClient(e.Env, projectID, e.CreateMovieTopic)
+		}
 	}
 
 	/*

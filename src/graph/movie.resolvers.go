@@ -147,6 +147,7 @@ func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) 
 			CreatedAt: record.CreatedAt,
 		})
 	}
+
 	return results, nil
 }
 

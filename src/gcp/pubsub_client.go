@@ -3,9 +3,9 @@ package gcp
 import (
 	"context"
 	"fmt"
-	"log"
+	"time"
 
-	"github.com/sky0621/fs-mng-backend/src/util"
+	"gocloud.dev/pubsub/mempubsub"
 
 	"golang.org/x/xerrors"
 
@@ -31,6 +31,12 @@ type pubSubClient struct {
 	topicList map[Topic]string
 }
 
+func CreateMemPubSubSet() (*pubsub.Topic, *pubsub.Subscription) {
+	tpc := mempubsub.NewTopic()
+	sub := mempubsub.NewSubscription(tpc, 1*time.Minute)
+	return tpc, sub
+}
+
 func NewPubSubClient(env, projectID, createMovieTopic string) PubSubClient {
 	return &pubSubClient{
 		env:       env,
@@ -42,14 +48,7 @@ func NewPubSubClient(env, projectID, createMovieTopic string) PubSubClient {
 }
 
 func (c *pubSubClient) SendTopic(ctx context.Context, topic Topic, metadata map[string]string, bodyJSON string) (e error) {
-	var targetTopic string
-	{
-		if util.IsLocal(c.env) {
-			targetTopic = fmt.Sprintf("mem://%s", c.topicList[topic])
-		} else {
-			targetTopic = fmt.Sprintf("gcppubsub://projects/%s/topics/%s", c.projectID, c.topicList[topic])
-		}
-	}
+	targetTopic := fmt.Sprintf("gcppubsub://projects/%s/topics/%s", c.projectID, c.topicList[topic])
 	t, err := pubsub.OpenTopic(ctx, targetTopic)
 	if err != nil {
 		return xerrors.Errorf("failed to Open Topic: %w", err)
@@ -62,40 +61,50 @@ func (c *pubSubClient) SendTopic(ctx context.Context, topic Topic, metadata map[
 		}
 	}()
 
-	err = t.Send(ctx, &pubsub.Message{
+	if err := t.Send(ctx, &pubsub.Message{
 		Metadata: metadata,
 		Body:     []byte(bodyJSON),
-	})
-	if err != nil {
+	}); err != nil {
 		return xerrors.Errorf("failed to Send Topic: %w", err)
 	}
 
-	if util.IsLocal(c.env) {
-		sub, err := pubsub.OpenSubscription(ctx, targetTopic)
-		if err != nil {
-			log.Printf("%+v\n", err)
-			return err
-		}
-		defer func() {
-			if sub != nil {
-				if err := sub.Shutdown(ctx); err != nil {
-					log.Printf("%+v\n", err)
-					e = err
-				}
-			}
-		}()
-		msg, err := sub.Receive(ctx)
-		if err != nil {
-			log.Printf("%+v\n", err)
-			return err
-		}
-		if msg != nil {
-			log.Printf("metadata: %#v", msg.Metadata)
-			log.Printf("body: %s", string(msg.Body))
+	return nil
+}
 
-			msg.Ack()
-		}
+type pubSubLocalClient struct {
+	env       string
+	projectID string
+	topicList map[Topic]string
+
+	memTopic        *pubsub.Topic
+	memSubscription *pubsub.Subscription
+}
+
+func NewPubSubLocalClient(env, projectID, createMovieTopic string, memTopic *pubsub.Topic, memSubscription *pubsub.Subscription) PubSubClient {
+	return &pubSubLocalClient{
+		env:       env,
+		projectID: projectID,
+		topicList: map[Topic]string{
+			CreateMovieTopic: createMovieTopic,
+		},
+		memTopic:        memTopic,
+		memSubscription: memSubscription,
 	}
+}
+
+func (c *pubSubLocalClient) SendTopic(ctx context.Context, topic Topic, metadata map[string]string, bodyJSON string) (e error) {
+	if err := c.memTopic.Send(ctx, &pubsub.Message{
+		Metadata: metadata,
+		Body:     []byte(bodyJSON),
+	}); err != nil {
+		return xerrors.Errorf("failed to Send Topic: %w", err)
+	}
+
+	msg, err := c.memSubscription.Receive(ctx)
+	if err != nil {
+		return xerrors.Errorf("failed to Receive: %w", err)
+	}
+	fmt.Printf("%#v", msg)
 
 	return nil
 }

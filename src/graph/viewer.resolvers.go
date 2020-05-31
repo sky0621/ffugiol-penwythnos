@@ -36,5 +36,6 @@ func (r *queryResolver) Viewers(ctx context.Context) ([]*model.Viewer, error) {
 			Nickname: util.ToNullableString(record.Nickname),
 		})
 	}
+
 	return results, nil
 }
