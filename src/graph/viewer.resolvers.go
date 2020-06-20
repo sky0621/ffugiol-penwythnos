@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sky0621/fs-mng-backend/src/util"
-
-	. "github.com/sky0621/fs-mng-backend/src/models"
-	"golang.org/x/xerrors"
-
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
+	. "github.com/sky0621/fs-mng-backend/src/models"
+	"github.com/sky0621/fs-mng-backend/src/util"
+	"golang.org/x/xerrors"
 )
 
 func (r *queryResolver) Viewer(ctx context.Context, id string) (*model.Viewer, error) {

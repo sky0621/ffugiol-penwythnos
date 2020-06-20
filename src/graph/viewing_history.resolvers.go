@@ -8,11 +8,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/sky0621/fs-mng-backend/src/graph/model"
 	. "github.com/sky0621/fs-mng-backend/src/models"
 	"github.com/volatiletech/sqlboiler/queries/qm"
 	"golang.org/x/xerrors"
-
-	"github.com/sky0621/fs-mng-backend/src/graph/model"
 )
 
 func (r *mutationResolver) RecordViewingHistory(ctx context.Context, input model.RecordViewingHistoryInput) (*model.MutationResponse, error) {

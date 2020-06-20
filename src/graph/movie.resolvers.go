@@ -10,11 +10,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/sky0621/fs-mng-backend/src/gcp"
-
-	"github.com/sky0621/fs-mng-backend/src/auth"
-
 	"github.com/google/uuid"
+	"github.com/sky0621/fs-mng-backend/src/auth"
+	"github.com/sky0621/fs-mng-backend/src/gcp"
 	"github.com/sky0621/fs-mng-backend/src/graph/generated"
 	"github.com/sky0621/fs-mng-backend/src/graph/model"
 	. "github.com/sky0621/fs-mng-backend/src/models"
@@ -22,6 +20,28 @@ import (
 	"github.com/volatiletech/sqlboiler/boil"
 	_ "gocloud.dev/pubsub/gcppubsub"
 )
+
+func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) ([]*model.ViewingHistory, error) {
+	records, err := For(ctx).ViewingHistoriesByMovieID.Load(obj.ID)
+	if err != nil {
+		log.Printf("%+v", err)
+		return nil, err
+	}
+
+	var results []*model.ViewingHistory
+	for _, record := range records {
+		results = append(results, &model.ViewingHistory{
+			ID: record.ID,
+			Viewer: &model.Viewer{
+				ID: record.Viewer.ID,
+			},
+			Movie:     obj,
+			CreatedAt: record.CreatedAt,
+		})
+	}
+
+	return results, nil
+}
 
 func (r *mutationResolver) CreateMovie(ctx context.Context, input model.MovieInput) (*model.MutationResponse, error) {
 	user := auth.GetAuthenticatedUser(ctx)
@@ -126,28 +146,6 @@ func (r *queryResolver) Movies(ctx context.Context) ([]*model.Movie, error) {
 			Scale:    record.Scale,
 		})
 	}
-	return results, nil
-}
-
-func (r *movieResolver) ViewingHistories(ctx context.Context, obj *model.Movie) ([]*model.ViewingHistory, error) {
-	records, err := For(ctx).ViewingHistoriesByMovieID.Load(obj.ID)
-	if err != nil {
-		log.Printf("%+v", err)
-		return nil, err
-	}
-
-	var results []*model.ViewingHistory
-	for _, record := range records {
-		results = append(results, &model.ViewingHistory{
-			ID: record.ID,
-			Viewer: &model.Viewer{
-				ID: record.Viewer.ID,
-			},
-			Movie:     obj,
-			CreatedAt: record.CreatedAt,
-		})
-	}
-
 	return results, nil
 }
 
