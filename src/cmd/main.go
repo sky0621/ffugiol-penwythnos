@@ -129,10 +129,10 @@ func main() {
 
 			// GraphQLエンドポイント（DataLoaderでラップ）
 			r.Handle("/query", graph.DataLoaderMiddleware(resolver, graphQlServer(resolver)))
-
-			// GraphQLドキュメント
-			r.Handle("/", playground.Handler("fs-mng-backend", "/query"))
 		})
+
+		// GraphQLドキュメント
+		router.Handle("/", playground.Handler("fs-mng-backend", "/query"))
 	}
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", e.ServerPort)

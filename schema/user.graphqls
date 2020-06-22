@@ -6,6 +6,8 @@ extend type Mutation {
 input UserInput {
     "名称"
     name: String!
+    "メールアドレス"
+    email: String!
 }
 
 extend type Query {
@@ -17,4 +19,6 @@ type User implements Node {
     id: ID!
     "名称"
     name: String!
+    "メールアドレス"
+    email: String!
 }

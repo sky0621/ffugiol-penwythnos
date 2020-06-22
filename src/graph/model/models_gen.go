@@ -43,6 +43,8 @@ type User struct {
 	ID string `json:"id"`
 	// 名称
 	Name string `json:"name"`
+	// メールアドレス
+	Email string `json:"email"`
 }
 
 func (User) IsNode() {}
@@ -50,4 +52,6 @@ func (User) IsNode() {}
 type UserInput struct {
 	// 名称
 	Name string `json:"name"`
+	// メールアドレス
+	Email string `json:"email"`
 }
