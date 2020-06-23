@@ -6,24 +6,19 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sky0621/fs-mng-backend/src/util"
-
-	"github.com/sky0621/fs-mng-backend/src/auth"
-
-	"github.com/99designs/gqlgen/graphql/playground"
-
-	"github.com/99designs/gqlgen/graphql/handler/transport"
-
-	"github.com/sky0621/fs-mng-backend/src/gcp"
-
-	"github.com/rs/cors"
-
-	"github.com/go-chi/chi"
-
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi"
 	_ "github.com/lib/pq"
+	"github.com/rs/cors"
+	"github.com/sky0621/fs-mng-backend/src/auth"
+	"github.com/sky0621/fs-mng-backend/src/gcp"
 	"github.com/sky0621/fs-mng-backend/src/graph"
 	"github.com/sky0621/fs-mng-backend/src/graph/generated"
+	"github.com/sky0621/fs-mng-backend/src/util"
 )
 
 func main() {
@@ -143,9 +138,19 @@ func main() {
 }
 
 func graphQlServer(resolver *graph.Resolver) *handler.Server {
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+	srv := handler.New(generated.NewExecutableSchema(generated.Config{
 		Resolvers: resolver,
 	}))
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
+
+	srv.SetQueryCache(lru.New(1000))
+
+	srv.Use(extension.Introspection{})
+	srv.Use(extension.AutomaticPersistedQuery{
+		Cache: lru.New(100),
+	})
 
 	var mb int64 = 1 << 20
 	srv.AddTransport(transport.MultipartForm{
